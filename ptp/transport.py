@@ -6,7 +6,10 @@ pack/unpack for the Fujifilm X100VI.
 
 from __future__ import annotations
 
+import os
 import struct
+import sys
+from pathlib import Path
 from typing import Optional
 
 import usb.backend.libusb1
@@ -45,15 +48,52 @@ class PTPTransport:
 
     @staticmethod
     def _get_backend():
+        candidates: list[str] = []
         try:
             import libusb
-            return usb.backend.libusb1.get_backend(find_library=lambda x: libusb.dll._name)
+
+            dll_name = getattr(getattr(libusb, 'dll', None), '_name', None)
+            if dll_name:
+                candidates.append(str(dll_name))
+
+            package_dir = Path(getattr(libusb, '__file__', '')).resolve().parent
+            candidates.extend(str(p) for p in package_dir.rglob('libusb-1.0.dll'))
         except Exception:
-            return None
+            pass
+
+        frozen_root = getattr(sys, '_MEIPASS', None)
+        if frozen_root:
+            candidates.extend(
+                str(p) for p in Path(frozen_root).rglob('libusb-1.0.dll')
+            )
+
+        for candidate in dict.fromkeys(candidates):
+            path = Path(candidate)
+            if not path.exists():
+                continue
+            try:
+                if hasattr(os, 'add_dll_directory'):
+                    os.add_dll_directory(str(path.parent))
+                backend = usb.backend.libusb1.get_backend(
+                    find_library=lambda _name, dll=str(path): dll
+                )
+                if backend is not None:
+                    return backend
+            except Exception:
+                continue
+
+        return usb.backend.libusb1.get_backend()
 
     def open(self) -> None:
         """Find camera, detach kernel driver (non-Windows), claim interface."""
         backend = self._get_backend()
+        if backend is None:
+            raise PTPError(
+                'Could not load a libusb backend. Rebuild the EXE with the '
+                'libusb Python package installed, or install libusb/WinUSB on '
+                'this machine.'
+            )
+
         dev = None
         for pid, model in FUJI_PRODUCT_IDS.items():
             dev = usb.core.find(idVendor=self.vendor_id, idProduct=pid, backend=backend)
@@ -96,7 +136,17 @@ class PTPTransport:
         if ep_in is None or ep_out is None:
             raise PTPError('Could not find bulk IN/OUT endpoints on camera.')
 
-        usb.util.claim_interface(dev, intf.bInterfaceNumber)
+        try:
+            usb.util.claim_interface(dev, intf.bInterfaceNumber)
+        except usb.core.USBError as exc:
+            if getattr(exc, 'errno', None) == 13:
+                raise PTPError(
+                    'Camera was found, but Windows denied access to the USB '
+                    'interface. Close other camera/photo apps, reconnect the '
+                    'camera, and confirm the camera interface is using WinUSB '
+                    'or libusbK via Zadig.'
+                ) from exc
+            raise
 
         self.device = dev
         self.interface = intf

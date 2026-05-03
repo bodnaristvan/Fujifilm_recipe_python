@@ -164,6 +164,16 @@ _WB_MODE_MAP: dict[str, int] = {
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
+# Pre-built prefix index so _parse_film_sim() avoids an O(n) scan per recipe.
+# For each known key, record every prefix of length ≥ 3 that uniquely maps to it.
+_FILM_SIM_PREFIX_MAP: dict[str, int] = {}
+for _k, _v in _FILM_SIM_MAP.items():
+    for _n in range(3, len(_k) + 1):
+        _pfx = _k[:_n]
+        if _pfx not in _FILM_SIM_PREFIX_MAP:
+            _FILM_SIM_PREFIX_MAP[_pfx] = _v
+
+
 def _parse_film_sim(text: str) -> int:
     key = text.strip().lower()
     if key in _FILM_SIM_MAP:
@@ -172,9 +182,11 @@ def _parse_film_sim(text: str) -> int:
     stripped = key.rstrip(".")
     if stripped in _FILM_SIM_MAP:
         return _FILM_SIM_MAP[stripped]
-    # prefix match for truncated strings like "Acros (" or "Nostalgic Neg"
-    for k, v in _FILM_SIM_MAP.items():
-        if key.startswith(k) or k.startswith(key):
+    # Prefix lookup — handles both "key starts with a known name" (e.g. "acros (")
+    # and "a known name starts with key" (stored as a prefix in the table).
+    for n in range(len(key), 2, -1):
+        v = _FILM_SIM_PREFIX_MAP.get(key[:n])
+        if v is not None:
             return v
     return FilmSim.Provia
 

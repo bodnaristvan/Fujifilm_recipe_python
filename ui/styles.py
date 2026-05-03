@@ -14,8 +14,8 @@ from typing import Final
 
 PALETTE: Final[dict[str, str]] = {
     # Brand
-    'accent':         '#E8840A',
-    'accentHover':    '#ff9620',
+    'accent':         '#F2A23A',
+    'accentHover':    '#ffb85c',
     'onAccent':       '#000000',
 
     # Surfaces — deeper contrast ramp for layered glass feel
@@ -63,6 +63,33 @@ PALETTE: Final[dict[str, str]] = {
     'pillBorder':     '#2a2a42',
     'pillText':       '#f0f0fa',
 }
+
+
+PALETTE.update({
+    'bg': '#11100e',
+    'bgDeep': '#090908',
+    'panel': '#1d1b18',
+    'panelAlt': '#28241f',
+    'panelRaised': '#302b25',
+    'border': '#373126',
+    'borderSoft': '#211e19',
+    'text': '#f0ece4',
+    'textBright': '#d8d0c4',
+    'textDim': '#91887a',
+    'textMute': '#70685f',
+    'slotSel': '#2a251f',
+    'slotHover': '#211e1a',
+    'slotSep': '#242019',
+    'rowSel': '#332b22',
+    'rowHover': '#26221d',
+    'sectionHdr': '#91887a',
+    'sectionHdrBg': '#211d18',
+    'swatchFallback': '#524b43',
+    'simDefault': '#8a8176',
+    'pillBg': '#28231d',
+    'pillBorder': '#3a3228',
+    'pillText': '#fff7ec',
+})
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +179,12 @@ QWidget#TopBar {{
     border-bottom: 1px solid {P['border']};
 }}
 
+QWidget#PresetHeader {{
+    background-color: {P['panelRaised']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+}}
+
 /* ── Slot rail ─────────────────────────────────────────────────────────── */
 
 QListWidget#SlotRail {{
@@ -200,6 +233,17 @@ QLabel[role="slotTag"] {{
     background: transparent;
 }}
 
+QLabel[role="simBadge"] {{
+    color: {P['textBright']};
+    background-color: {P['panelAlt']};
+    border: 1px solid {P['border']};
+    border-radius: 11px;
+    padding: 3px 10px;
+    font-size: 8pt;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+}}
+
 QLabel[role="dim"] {{
     color: {P['textDim']};
     font-weight: 500;
@@ -236,7 +280,7 @@ QLabel#RecipeImage {{
 }}
 
 QLabel#RecipeTitle {{
-    font-size: 13pt;
+    font-size: 18pt;
     font-weight: 700;
     color: {P['text']};
     letter-spacing: 0.2px;
@@ -247,9 +291,9 @@ QLabel#RecipeTitle {{
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
     background-color: {P['panelAlt']};
     border: 1px solid {P['border']};
-    border-radius: 6px;
-    padding: 4px 7px;
-    min-height: 20px;
+    border-radius: 7px;
+    padding: 5px 8px;
+    min-height: 24px;
     font-weight: 600;
     selection-background-color: {P['accent']};
     selection-color: {P['onAccent']};
@@ -258,7 +302,7 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
 /* Accent halo on focus — border + subtle background tint */
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
     border: 2px solid {P['accent']};
-    padding: 3px 6px;
+    padding: 4px 7px;
     background-color: rgba(232, 132, 10, 0.06);
 }}
 
@@ -283,8 +327,8 @@ QComboBox QAbstractItemView {{
 QPushButton {{
     background-color: {P['panelAlt']};
     border: 1px solid {P['border']};
-    border-radius: 6px;
-    padding: 6px 14px;
+    border-radius: 7px;
+    padding: 7px 14px;
     color: {P['text']};
     font-weight: 600;
 }}
@@ -355,7 +399,7 @@ QLabel#connDot[state="on"] {{
 
 QGroupBox {{
     border: 1px solid {P['border']};
-    border-radius: 10px;
+    border-radius: 8px;
     margin-top: 18px;
     padding-top: 14px;
     padding-left: 8px;
@@ -410,24 +454,22 @@ QListWidget#RecipeList {{
     border: none;
     border-right: 1px solid {P['border']};
     outline: none;
+    padding: 8px;
 }}
 
 QListWidget#RecipeList::item {{
-    padding: 6px 8px;
-    border-bottom: 1px solid {P['borderSoft']};
-    color: {P['text']};
-    border-radius: 0px;
+    padding: 0;
+    margin: 3px 0;
+    border: none;
+    border-radius: 8px;
 }}
 
 QListWidget#RecipeList::item:selected {{
-    background-color: {P['rowSel']};
-    color: {P['accent']};
-    border-left: 3px solid {P['accent']};
-    padding-left: 5px;
+    background-color: transparent;
 }}
 
 QListWidget#RecipeList::item:hover:!selected {{
-    background-color: {P['rowHover']};
+    background-color: transparent;
 }}
 
 /* ── File / tool buttons ───────────────────────────────────────────────── */
@@ -435,8 +477,8 @@ QListWidget#RecipeList::item:hover:!selected {{
 QToolButton {{
     background-color: {P['panelAlt']};
     border: 1px solid {P['border']};
-    border-radius: 6px;
-    padding: 6px 14px;
+    border-radius: 7px;
+    padding: 7px 14px;
     color: {P['text']};
     font-weight: 600;
 }}

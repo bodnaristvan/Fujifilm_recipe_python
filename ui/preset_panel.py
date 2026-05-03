@@ -157,8 +157,11 @@ class PresetPanel(QWidget):
         root.setContentsMargins(16, 14, 16, 14)
         root.setSpacing(10)
 
-        # --- Header: slot tag + name editor
-        header = QHBoxLayout()
+        # --- Header: slot tag, name editor, and active film simulation badge
+        header_card = QWidget()
+        header_card.setObjectName('PresetHeader')
+        header = QHBoxLayout(header_card)
+        header.setContentsMargins(12, 10, 12, 10)
         header.setSpacing(12)
 
         self.slotTag = QLabel(f'C{self.slot}')
@@ -168,9 +171,14 @@ class PresetPanel(QWidget):
         self.nameEdit.setPlaceholderText('Preset name')
         self.nameEdit.setMaxLength(32)
 
+        self.simBadge = QLabel('FILM SIM')
+        self.simBadge.setProperty('role', 'simBadge')
+        self.simBadge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         header.addWidget(self.slotTag)
         header.addWidget(self.nameEdit, 1)
-        root.addLayout(header)
+        header.addWidget(self.simBadge)
+        root.addWidget(header_card)
 
         divider = QFrame()
         divider.setProperty('role', 'divider')
@@ -410,6 +418,15 @@ class PresetPanel(QWidget):
             f'font-size: 15pt; font-weight: 700; color: {color};'
             f' padding: 2px 8px 2px 14px; border: none;'
             f' border-left: 3px solid {color}; background: transparent;'
+        )
+
+        label = FilmSimLabels.get(self._current_film_sim(), 'Film Sim').upper()
+        self.simBadge.setText(label)
+        self.simBadge.setStyleSheet(
+            f'color: {color}; background-color: {PALETTE["panelAlt"]};'
+            f' border: 1px solid {color}; border-radius: 11px;'
+            f' padding: 3px 10px; font-size: 8pt; font-weight: 800;'
+            f' letter-spacing: 0.8px;'
         )
 
     def _update_color_temp_enabled(self) -> None:

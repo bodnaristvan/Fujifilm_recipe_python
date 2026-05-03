@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from PyQt6.QtGui import QFont, QFontDatabase
+from PyQt6.QtGui import QFont, QFontDatabase, QIcon
 from PyQt6.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
@@ -24,9 +24,20 @@ def _load_fonts() -> None:
         QFontDatabase.addApplicationFont(str(ttf))
 
 
+def _app_icon() -> QIcon:
+    """Return the bundled app icon if available."""
+    for icon_path in (ROOT / 'assets' / 'app_icon.svg', ROOT / 'assets' / 'app_icon.ico'):
+        if icon_path.exists():
+            icon = QIcon(str(icon_path))
+            if not icon.isNull():
+                return icon
+    return QIcon()
+
+
 def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName('FujiRecipe')
+    app.setWindowIcon(_app_icon())
     app.setStyle('Fusion')
 
     _load_fonts()
@@ -39,6 +50,7 @@ def main() -> int:
     app.setStyleSheet(STYLESHEET)
 
     window = MainWindow()
+    window.setWindowIcon(app.windowIcon())
     window.show()
     return app.exec()
 

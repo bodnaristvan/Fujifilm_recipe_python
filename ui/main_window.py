@@ -468,8 +468,12 @@ class MainWindow(QMainWindow):
         self.connStatus.setProperty('role', 'dim')
 
         self.fileBtn = QToolButton()
-        self.fileBtn.setText('File ▾')
+        self.fileBtn.setText('File')
+        self.fileBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon))
+        self.fileBtn.setIconSize(QSize(16, 16))
+        self.fileBtn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.fileBtn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.fileBtn.setToolTip('Import, export, and recipe card actions')
         self.fileBtn.setStyleSheet('QToolButton::menu-indicator { image: none; }')
         file_menu = QMenu(self.fileBtn)
         file_menu.addAction('Import Recipe…',  self._on_import_clicked)
@@ -482,13 +486,22 @@ class MainWindow(QMainWindow):
         self.fileBtn.setMenu(file_menu)
 
         self.browseBtn = QPushButton('Browse Recipes')
+        self.browseBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView))
+        self.browseBtn.setIconSize(QSize(16, 16))
         self.browseBtn.setProperty('role', 'primary')
+        self.browseBtn.setToolTip('Browse built-in and saved film recipes')
         self.browseBtn.clicked.connect(self._on_browse_clicked)
 
         self.readAllBtn = QPushButton('Read All')
+        self.readAllBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload))
+        self.readAllBtn.setIconSize(QSize(16, 16))
+        self.readAllBtn.setToolTip('Read all custom slots from the camera')
         self.readAllBtn.clicked.connect(self._on_read_all_clicked)
 
         self.connectBtn = QPushButton('Connect')
+        self.connectBtn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DriveNetIcon))
+        self.connectBtn.setIconSize(QSize(16, 16))
+        self.connectBtn.setToolTip('Connect or disconnect the camera')
         self.connectBtn.clicked.connect(self._on_connect_clicked)
 
         top_l.addWidget(self.connDot)
@@ -680,8 +693,9 @@ class MainWindow(QMainWindow):
         if self._stack_anim is not None:
             self._stack_anim.stop()
             self._stack_anim = None
-            for i in range(self.stack.count()):
-                self.stack.widget(i).setGraphicsEffect(None)
+            # Only the current and previously-targeted pages ever receive effects.
+            self.stack.currentWidget().setGraphicsEffect(None)
+            self.stack.widget(index).setGraphicsEffect(None)
             layout = self.stack.layout()
             if isinstance(layout, QStackedLayout):
                 layout.setStackingMode(QStackedLayout.StackingMode.StackOne)
@@ -692,22 +706,26 @@ class MainWindow(QMainWindow):
         if isinstance(layout, QStackedLayout):
             layout.setStackingMode(QStackedLayout.StackingMode.StackAll)
 
-        for i in range(self.stack.count()):
-            page = self.stack.widget(i)
-            effect = QGraphicsOpacityEffect(page)
-            effect.setOpacity(1.0 if page is old_page else 0.0)
-            page.setGraphicsEffect(effect)
+        # Only apply opacity effects to the two pages being transitioned —
+        # setting effects on all 7 panels forces Qt to composite every one.
+        old_effect = QGraphicsOpacityEffect(old_page)
+        old_effect.setOpacity(1.0)
+        old_page.setGraphicsEffect(old_effect)
+
+        new_effect = QGraphicsOpacityEffect(new_page)
+        new_effect.setOpacity(0.0)
+        new_page.setGraphicsEffect(new_effect)
 
         self.stack.setCurrentIndex(index)
         new_page.raise_()
 
-        old_anim = QPropertyAnimation(old_page.graphicsEffect(), b'opacity', self)
+        old_anim = QPropertyAnimation(old_effect, b'opacity', self)
         old_anim.setDuration(120)
         old_anim.setStartValue(1.0)
         old_anim.setEndValue(0.0)
         old_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        new_anim = QPropertyAnimation(new_page.graphicsEffect(), b'opacity', self)
+        new_anim = QPropertyAnimation(new_effect, b'opacity', self)
         new_anim.setDuration(120)
         new_anim.setStartValue(0.0)
         new_anim.setEndValue(1.0)
@@ -720,8 +738,8 @@ class MainWindow(QMainWindow):
         def finish() -> None:
             if isinstance(layout, QStackedLayout):
                 layout.setStackingMode(QStackedLayout.StackingMode.StackOne)
-            for i in range(self.stack.count()):
-                self.stack.widget(i).setGraphicsEffect(None)
+            old_page.setGraphicsEffect(None)
+            new_page.setGraphicsEffect(None)
             self._stack_anim = None
 
         group.finished.connect(finish)
