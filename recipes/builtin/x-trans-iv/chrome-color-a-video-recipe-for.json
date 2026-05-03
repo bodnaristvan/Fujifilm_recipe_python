@@ -1,0 +1,17 @@
+{
+  "slug": "chrome-color-a-video-recipe-for",
+  "title": "Chrome Color — A Video Recipe for Fujifilm Cameras",
+  "source": "https://fujixweekly.com/2026/05/02/chrome-color-a-video-recipe-for-fujifilm-cameras/",
+  "image": "chrome-color-a-video-recipe-for.jpg",
+  "params": {
+    "filmSimulation": "Classic Chrome",
+    "whiteBalance": "Auto, 0 Red & -3 Blue",
+    "dynamicRange": "DR400",
+    "highlight": "+1",
+    "shadow": "-1",
+    "color": "+3",
+    "sharpness": "0",
+    "noiseReduction": "-4",
+    "iso": "up to ISO 6400"
+  }
+}

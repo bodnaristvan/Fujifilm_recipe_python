@@ -1,0 +1,22 @@
+{
+  "slug": "pro-negative-160c",
+  "title": "PRO Negative 160C",
+  "source": "https://fujixweekly.com/2024/03/28/pro-negative-160c-film-simulation-recipe-for-fujifilm-x-trans-iv-x-trans-v/",
+  "image": "pro-negative-160c.jpg",
+  "params": {
+    "filmSimulation": "PRO Neg. Hi",
+    "dynamicRange": "DR400",
+    "grainEffect": "Weak, Small",
+    "colorChrome": "Strong",
+    "colorChromeFxBlue": "Weak",
+    "whiteBalance": "Auto, +1 Red & -3 Blue",
+    "highlight": "+0.5",
+    "shadow": "-1.5",
+    "color": "+4",
+    "sharpness": "-1",
+    "noiseReduction": "-4",
+    "clarity": "-2",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

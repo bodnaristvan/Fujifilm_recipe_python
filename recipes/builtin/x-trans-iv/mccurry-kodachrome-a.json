@@ -1,0 +1,21 @@
+{
+  "slug": "mccurry-kodachrome-a",
+  "title": "McCurry Kodachrome",
+  "source": "https://fujixweekly.com/2024/01/25/mccurry-kodachrome-a-fujifilm-x-trans-iv-film-simulation-recipe/",
+  "image": "mccurry-kodachrome-a.jpg",
+  "params": {
+    "filmSimulation": "Classic Chrome",
+    "dynamicRange": "DR100",
+    "grainEffect": "Weak, Small",
+    "colorChrome": "Strong",
+    "colorChromeFxBlue": "Off",
+    "highlight": "0",
+    "shadow": "0",
+    "color": "+2",
+    "sharpness": "-2",
+    "noiseReduction": "-2",
+    "clarity": "0",
+    "iso": "Auto, up to ISO 1600",
+    "exposureCompensation": "-1/3 to +1/3 (typically)"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "slug": "fujifilm-x-t30-x-trans-iv",
+  "title": "Velvia v2",
+  "source": "https://fujixweekly.com/2021/02/16/fujifilm-x-t30-x-trans-iv-film-simulation-recipe-velvia-v2/",
+  "image": "fujifilm-x-t30-x-trans-iv.jpg",
+  "params": {
+    "filmSimulation": "Velvia",
+    "dynamicRange": "DR200",
+    "highlight": "-1",
+    "shadow": "-1",
+    "color": "+4",
+    "noiseReduction": "-4",
+    "grainEffect": "Weak",
+    "colorChrome": "Strong",
+    "whiteBalance": "Auto, 0 Red & 0 Blue",
+    "iso": "Auto up to ISO 6400",
+    "exposureCompensation": "+1/3 to +1 (typically)"
+  }
+}

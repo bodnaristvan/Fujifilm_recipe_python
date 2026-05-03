@@ -1,0 +1,17 @@
+{
+  "slug": "nostalgic-color-a-video-recipe-for",
+  "title": "Nostalgic Color — A Video Recipe for Fujifilm Cameras",
+  "source": "https://fujixweekly.com/2026/05/02/nostalgic-color-a-video-recipe-for-fujifilm-cameras/",
+  "image": "nostalgic-color-a-video-recipe-for.jpg",
+  "params": {
+    "filmSimulation": "Nostalgic Neg.",
+    "whiteBalance": "Auto Ambiance Priority, +3 Red & -3 Blue",
+    "dynamicRange": "DR400",
+    "highlight": "0",
+    "shadow": "-1",
+    "color": "-2",
+    "sharpness": "0",
+    "noiseReduction": "-4",
+    "iso": "up to ISO 6400"
+  }
+}

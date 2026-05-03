@@ -17,6 +17,7 @@ to know about the text format.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +30,8 @@ from profile.enums import (
 )
 from profile.preset_translate import PresetUIValues
 
+log = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -38,7 +41,7 @@ BUILTIN_DIR = Path(__file__).resolve().parent / "builtin"
 # Human-readable sensor names shown in the browser UI
 SENSOR_LABELS: dict[str, str] = {
     "X-Trans V":  "x-trans-v",
-    # "X-Trans IV": "x-trans-iv",   # uncomment once data is scraped
+    "X-Trans IV": "x-trans-iv",
 }
 
 
@@ -290,11 +293,21 @@ def _params_to_ui(params: dict[str, str]) -> PresetUIValues:
 # Public API
 # ---------------------------------------------------------------------------
 
+_CATALOG_CACHE: dict[str, list[Recipe]] = {}
+
+
 def load_catalog(sensor_folder: str = "x-trans-v") -> list[Recipe]:
     """Load all recipes for the given sensor folder.
 
+    Results are cached per sensor for the lifetime of the process so that
+    re-opening the recipe browser does not re-parse 60+ JSON files.
+
     Returns an empty list (not an error) if the folder or index doesn't exist yet.
     """
+    cached = _CATALOG_CACHE.get(sensor_folder)
+    if cached is not None:
+        return cached
+
     sensor_dir = BUILTIN_DIR / sensor_folder
     index_file = sensor_dir / "_index.json"
     images_dir = sensor_dir / "images"
@@ -330,6 +343,10 @@ def load_catalog(sensor_folder: str = "x-trans-v") -> list[Recipe]:
                 ui_values=ui,
             ))
         except Exception:
-            pass  # silently skip malformed entries
+            log.warning(
+                "Skipping malformed recipe %s/%s.json", sensor_folder, slug,
+                exc_info=True,
+            )
 
+    _CATALOG_CACHE[sensor_folder] = recipes
     return recipes

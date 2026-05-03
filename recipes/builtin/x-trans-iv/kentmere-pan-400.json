@@ -1,0 +1,21 @@
+{
+  "slug": "kentmere-pan-400",
+  "title": "Kentmere Pan 400",
+  "source": "https://fujixweekly.com/2024/03/15/kentmere-pan-400-fujifilm-x100v-x-trans-iv-v-film-simulation-recipe/",
+  "image": "kentmere-pan-400.jpg",
+  "params": {
+    "filmSimulation": "Acros+G",
+    "grainEffect": "Strong, Large",
+    "colorChrome": "Off",
+    "colorChromeFxBlue": "Off",
+    "whiteBalance": "Auto, +7 Red & +6 Blue",
+    "dynamicRange": "DR-Auto",
+    "highlight": "+1",
+    "shadow": "+1",
+    "sharpness": "+3",
+    "noiseReduction": "-4",
+    "clarity": "+1",
+    "iso": "up to ISO 12800",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

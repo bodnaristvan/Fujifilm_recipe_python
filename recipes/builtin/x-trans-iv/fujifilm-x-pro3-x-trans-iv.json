@@ -1,0 +1,21 @@
+{
+  "slug": "fujifilm-x-pro3-x-trans-iv",
+  "title": "Old Ektachrome",
+  "source": "https://fujixweekly.com/2022/03/05/fujifilm-x-pro3-x-trans-iv-film-simulation-recipe-old-ektachrome/",
+  "image": "fujifilm-x-pro3-x-trans-iv.jpg",
+  "params": {
+    "filmSimulation": "Classic Chrome",
+    "dynamicRange": "DR400",
+    "highlight": "+2",
+    "shadow": "+1",
+    "color": "+3",
+    "noiseReduction": "-4",
+    "sharpness": "0",
+    "clarity": "-4",
+    "grainEffect": "Strong, Large",
+    "colorChrome": "Strong",
+    "whiteBalance": "Daylight, +3 Red & +2 Blue",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

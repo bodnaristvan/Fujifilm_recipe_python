@@ -18,8 +18,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QFont, QIcon, QPainter, QPixmap
+from PyQt6.QtCore import Qt, QSize, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QFont, QIcon, QLinearGradient, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -51,6 +51,8 @@ from profile.enums import (
 from profile.preset_translate import PresetUIValues
 from recipes.loader import Recipe, SENSOR_LABELS, load_catalog
 
+from .styles import PALETTE
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -69,8 +71,8 @@ _FILM_SIM_FILTER_ITEMS: list[tuple[str, Optional[int]]] = [
 _MAX_PINNED_RECENT = 8
 
 # Dim colour for section-header items (non-selectable list rows)
-_SECTION_HDR_COLOR = QColor("#888894")
-_SECTION_HDR_BG    = QColor("#1a1a1e")
+_SECTION_HDR_COLOR = QColor(PALETTE['sectionHdr'])
+_SECTION_HDR_BG    = QColor(PALETTE['sectionHdrBg'])
 
 
 def _ows(val: int) -> str:
@@ -110,8 +112,16 @@ class RecipeBrowserDialog(QDialog):
         self._item_map: list[Optional[Recipe]] = []
 
         self._current_pixmap: Optional[QPixmap] = None  # for resize rescaling
+        self._hero_recipe:    Optional[Recipe]  = None  # painted gradient hero
         self._is_user_view = False  # True when "My Recipes" is active
 
+        # Debounce timer for the search box — keeps typing smooth on large catalogs.
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(150)
+        self._search_timer.timeout.connect(self._apply_filter)
+
+        self._prerender_swatches()
         self._build_ui()
         self._wire_events()
         self._load_sensor("x-trans-v")
@@ -218,8 +228,9 @@ class RecipeBrowserDialog(QDialog):
         scroll.setWidgetResizable(True)
         params_host = QWidget()
         self._params_grid = QGridLayout(params_host)
-        self._params_grid.setHorizontalSpacing(16)
-        self._params_grid.setVerticalSpacing(3)
+        self._params_grid.setHorizontalSpacing(14)
+        self._params_grid.setVerticalSpacing(6)
+        self._params_grid.setColumnStretch(0, 0)
         self._params_grid.setColumnStretch(1, 1)
         scroll.setWidget(params_host)
         detail_layout.addWidget(scroll, 1)
@@ -273,7 +284,9 @@ class RecipeBrowserDialog(QDialog):
     def _wire_events(self) -> None:
         self.sensorCombo.currentIndexChanged.connect(self._on_sensor_changed)
         self.filmSimFilter.currentIndexChanged.connect(self._apply_filter)
-        self.searchEdit.textChanged.connect(self._apply_filter)
+        # Debounced — restarting the timer on every keystroke collapses bursts
+        # into a single _apply_filter call 150 ms after the user pauses.
+        self.searchEdit.textChanged.connect(self._search_timer.start)
         self.recipeList.currentRowChanged.connect(self._on_row_changed)
         self.loadBtn.clicked.connect(self._on_load_clicked)
         self.writeBtn.clicked.connect(self._on_write_clicked)
@@ -381,20 +394,48 @@ class RecipeBrowserDialog(QDialog):
 
     _THUMB = 48   # thumbnail edge length in pixels
 
+    # Icon caches shared across all instances — QPixmap is cheap to share and
+    # the underlying images never change at runtime.
+    _thumb_cache: dict[str, QIcon] = {}     # keyed by str(image_path)
+    _swatch_cache: dict[int, QIcon] = {}    # keyed by film-sim enum value
+    _fallback_swatch: Optional[QIcon] = None
+
+    def _prerender_swatches(self) -> None:
+        """Pre-render one fallback swatch per SIM_COLORS entry once per process."""
+        if self._swatch_cache:
+            return
+        T = self._THUMB
+        for sim, accent_hex in SIM_COLORS.items():
+            self._swatch_cache[sim] = self._build_swatch(T, accent_hex)
+        type(self)._fallback_swatch = self._build_swatch(T, PALETTE['swatchFallback'])
+
+    @staticmethod
+    def _build_swatch(size: int, accent_hex: str) -> QIcon:
+        pix = QPixmap(size, size)
+        pix.fill(QColor(PALETTE['panelRaised']))
+        painter = QPainter(pix)
+        painter.fillRect(0, size - 4, size, 4, QColor(accent_hex))
+        painter.end()
+        return QIcon(pix)
+
     def _make_thumb(self, recipe: Recipe) -> QIcon:
         """Return a 48×48 QIcon for *recipe*.
 
         If the recipe has a photo, it is centre-cropped to a square.
-        Otherwise a small dark swatch with a film-sim accent stripe is used
-        so that all list items stay the same height regardless of whether an
-        image is available.
+        Otherwise a pre-rendered film-sim accent swatch is used so that all
+        list items stay the same height regardless of whether an image is
+        available. Both cases are cached — the first paint of a recipe pays
+        for the decode, every subsequent _apply_filter is a dict lookup.
         """
         T = self._THUMB
-        pix: Optional[QPixmap] = None
 
         if recipe.image_path is not None:
+            key = str(recipe.image_path)
+            cached = self._thumb_cache.get(key)
+            if cached is not None:
+                return cached
             try:
-                src = QPixmap(str(recipe.image_path))
+                src = QPixmap(key)
                 if not src.isNull():
                     scaled = src.scaled(
                         T, T,
@@ -403,20 +444,16 @@ class RecipeBrowserDialog(QDialog):
                     )
                     sx = (scaled.width()  - T) // 2
                     sy = (scaled.height() - T) // 2
-                    pix = scaled.copy(sx, sy, T, T)
+                    icon = QIcon(scaled.copy(sx, sy, T, T))
+                    self._thumb_cache[key] = icon
+                    return icon
             except Exception:
                 pass
 
-        if pix is None:
-            # Coloured accent swatch — dark bg + 4 px film-sim stripe at bottom
-            accent_hex = SIM_COLORS.get(recipe.ui_values.filmSimulation, '#444450')
-            pix = QPixmap(T, T)
-            pix.fill(QColor('#1e1e26'))
-            painter = QPainter(pix)
-            painter.fillRect(0, T - 4, T, 4, QColor(accent_hex))
-            painter.end()
-
-        return QIcon(pix)
+        return self._swatch_cache.get(
+            recipe.ui_values.filmSimulation,
+            self._fallback_swatch or self._build_swatch(T, PALETTE['swatchFallback']),
+        )
 
     # --------------------------------------------------------- event handlers
 
@@ -521,6 +558,7 @@ class RecipeBrowserDialog(QDialog):
 
     def _clear_detail(self) -> None:
         self._current_pixmap = None
+        self._hero_recipe    = None
         self.imageLabel.clear()
         self.imageLabel.setText("No recipe selected")
         self.titleLabel.clear()
@@ -532,18 +570,21 @@ class RecipeBrowserDialog(QDialog):
         self.deleteBtn.setVisible(False)
 
     def _show_detail(self, recipe: Recipe) -> None:
-        # Image
+        # Image / hero
         if recipe.image_path and recipe.image_path.exists():
             pix = QPixmap(str(recipe.image_path))
             if not pix.isNull():
                 self._current_pixmap = pix
+                self._hero_recipe    = None
                 self._refresh_image()
             else:
                 self._current_pixmap = None
-                self.imageLabel.setText("[image unavailable]")
+                self._hero_recipe    = recipe
+                self._refresh_image()
         else:
             self._current_pixmap = None
-            self.imageLabel.setText("[no image]")
+            self._hero_recipe    = recipe
+            self._refresh_image()
 
         self.titleLabel.setText(_short_title(recipe.title))
         self.sourceLabel.setText(recipe.source)
@@ -552,7 +593,7 @@ class RecipeBrowserDialog(QDialog):
         # even if they originated from My Recipes, as sensor=="recent" here)
         self.deleteBtn.setVisible(recipe.sensor == _MY_RECIPES_KEY)
 
-        # Params
+        # Params — monospaced value pills in column 1
         self._clear_params_grid()
         v = recipe.ui_values
         rows = [
@@ -571,13 +612,19 @@ class RecipeBrowserDialog(QDialog):
             ("Clarity",          f"{v.clarity:+.1f}"),
         ]
         for i, (label, value) in enumerate(rows):
-            lbl = QLabel(label + ":")
+            lbl = QLabel(label)
             lbl.setProperty("role", "paramLabel")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            val = QLabel(str(value))
-            val.setProperty("role", "paramValue")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+            pill = QLabel(str(value))
+            pill.setProperty("role", "valuePill")
+            pill.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            pill.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
+
             self._params_grid.addWidget(lbl, i, 0)
-            self._params_grid.addWidget(val, i, 1)
+            self._params_grid.addWidget(
+                pill, i, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
 
         self.loadBtn.setEnabled(True)
         self.writeBtn.setEnabled(True)
@@ -591,6 +638,11 @@ class RecipeBrowserDialog(QDialog):
                 w.deleteLater()
 
     def _refresh_image(self) -> None:
+        if self._hero_recipe is not None:
+            # Repaint the gradient hero at the imageLabel's current size so
+            # the type stays crisp and the gradient fills edge-to-edge.
+            self.imageLabel.setPixmap(self._make_gradient_hero(self._hero_recipe))
+            return
         if self._current_pixmap is None:
             return
         w = self.imageLabel.width() or 500
@@ -601,6 +653,47 @@ class RecipeBrowserDialog(QDialog):
             Qt.TransformationMode.SmoothTransformation,
         )
         self.imageLabel.setPixmap(scaled)
+
+    def _make_gradient_hero(self, recipe: Recipe) -> QPixmap:
+        """Render a film-sim accent gradient with the simulation name baked
+        in as the hero — used when no photo is available for *recipe*."""
+        w = max(self.imageLabel.width(),  500)
+        h = max(self.imageLabel.height(), self.imageLabel.minimumHeight() or 200)
+
+        sim_val   = recipe.ui_values.filmSimulation
+        sim_color = QColor(SIM_COLORS.get(sim_val, PALETTE['simDefault']))
+        sim_name  = FilmSimLabels.get(sim_val, "Recipe")
+
+        pix = QPixmap(w, h)
+        pix.fill(QColor(PALETTE['bgDeep']))
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        grad = QLinearGradient(0, 0, w, h)
+        # Keep the saturated sim colour at the top-left, fade into the deep
+        # surface colour at the bottom-right.
+        top = QColor(sim_color)
+        top.setAlpha(220)
+        grad.setColorAt(0.0, top)
+        grad.setColorAt(1.0, QColor(PALETTE['bgDeep']))
+        p.fillRect(0, 0, w, h, QBrush(grad))
+
+        # Subtle vignette at the bottom for legibility
+        veil = QLinearGradient(0, h * 0.4, 0, h)
+        veil.setColorAt(0.0, QColor(0, 0, 0, 0))
+        veil.setColorAt(1.0, QColor(0, 0, 0, 110))
+        p.fillRect(0, 0, w, h, QBrush(veil))
+
+        # Big film-sim name
+        title_font = QFont("Inter", max(20, h // 8))
+        title_font.setWeight(QFont.Weight.Bold)
+        title_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.0)
+        p.setFont(title_font)
+        p.setPen(QColor(255, 255, 255, 235))
+        p.drawText(pix.rect(), Qt.AlignmentFlag.AlignCenter, sim_name)
+
+        p.end()
+        return pix
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

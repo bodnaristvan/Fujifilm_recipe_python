@@ -1,0 +1,20 @@
+{
+  "slug": "fujifilm-x-t3-x-t30-x-h1",
+  "title": "Negative Print",
+  "source": "https://fujixweekly.com/2022/01/21/fujifilm-x-t3-x-t30-x-h1-film-simulation-recipe-negative-print/",
+  "image": "fujifilm-x-t3-x-t30-x-h1.jpg",
+  "params": {
+    "filmSimulation": "Eterna",
+    "dynamicRange": "DR200",
+    "highlight": "+2",
+    "shadow": "+4",
+    "color": "+4",
+    "noiseReduction": "-4",
+    "sharpness": "-1",
+    "grainEffect": "Weak",
+    "colorChrome": "Off/NA",
+    "whiteBalance": "Fluorescent 3, -2 Red & -7 Blue",
+    "iso": "Auto up to ISO 6400",
+    "exposureCompensation": "+1/3 to +2/3"
+  }
+}

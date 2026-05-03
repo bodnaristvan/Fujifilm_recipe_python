@@ -1,0 +1,17 @@
+{
+  "slug": "natural-negative-a-video-recipe-for",
+  "title": "Natural Negative — A Video Recipe for Fujifilm Cameras",
+  "source": "https://fujixweekly.com/2026/05/02/natural-negative-a-video-recipe-for-fujifilm-cameras/",
+  "image": "natural-negative-a-video-recipe-for.jpg",
+  "params": {
+    "filmSimulation": "Eterna",
+    "whiteBalance": "Auto White Priority, +2 Red & -4 Blue",
+    "dynamicRange": "DR400",
+    "highlight": "0",
+    "shadow": "+1",
+    "color": "+2",
+    "sharpness": "-1",
+    "noiseReduction": "-4",
+    "iso": "up to ISO 12800"
+  }
+}

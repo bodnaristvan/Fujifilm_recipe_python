@@ -1,0 +1,17 @@
+{
+  "slug": "reala-color-a-video-recipe-for",
+  "title": "Reala Color — A Video Recipe for Fujifilm Cameras",
+  "source": "https://fujixweekly.com/2026/05/02/reala-color-a-video-recipe-for-fujifilm-cameras/",
+  "image": "reala-color-a-video-recipe-for.jpg",
+  "params": {
+    "filmSimulation": "Reala Ace",
+    "whiteBalance": "Auto, +2 Red & -4 Blue",
+    "dynamicRange": "DR400",
+    "highlight": "0",
+    "shadow": "-1.5",
+    "color": "+3",
+    "sharpness": "-1",
+    "noiseReduction": "-4",
+    "iso": "up to ISO 6400"
+  }
+}

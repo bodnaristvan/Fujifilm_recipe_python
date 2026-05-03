@@ -1,0 +1,19 @@
+{
+  "slug": "fujifilm-x100v-x-trans-iii-x-trans-iv",
+  "title": "Monochrome Negative",
+  "source": "https://fujixweekly.com/2021/08/25/fujifilm-x100v-x-trans-iii-x-trans-iv-film-simulation-recipe-monochrome-negative/",
+  "image": "fujifilm-x100v-x-trans-iii-x-trans-iv.jpg",
+  "params": {
+    "filmSimulation": "Acros",
+    "dynamicRange": "DR400",
+    "highlight": "+3",
+    "shadow": "0",
+    "noiseReduction": "-4",
+    "clarity": "0",
+    "grainEffect": "Strong, Small",
+    "colorChrome": "Off",
+    "whiteBalance": "Daylight, 0 Red & 0 Blue",
+    "iso": "Auto, up to ISO 12800",
+    "exposureCompensation": "0 to -2/3 (typically)"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "slug": "fujifilm-x-trans-iii-x-t3-x-t30",
+  "title": "Porto 200",
+  "source": "https://fujixweekly.com/2021/11/17/fujifilm-x-trans-iii-x-t3-x-t30-film-simulation-recipe-porto-200/",
+  "image": "fujifilm-x-trans-iii-x-t3-x-t30.jpg",
+  "params": {
+    "filmSimulation": "PRO Neg. Std",
+    "dynamicRange": "DR200",
+    "highlight": "-1",
+    "shadow": "0",
+    "color": "0",
+    "colorChrome": "Off or N/A",
+    "sharpness": "0",
+    "noiseReduction": "-4",
+    "grainEffect": "Weak",
+    "whiteBalance": "Shade, 0 Red & -4 Blue",
+    "iso": "Auto up to ISO 6400",
+    "exposureCompensation": "+1/3 to +2/3 (typically)"
+  }
+}

@@ -15,13 +15,26 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QPoint, QRect, QSize, QThread, Qt, pyqtSignal
+from PyQt6.QtCore import (
+    QEvent,
+    QPoint,
+    QRect,
+    QSize,
+    QThread,
+    QTimer,
+    Qt,
+    pyqtSignal,
+    QEasingCurve,
+    QParallelAnimationGroup,
+    QPropertyAnimation,
+)
 from PyQt6.QtGui import QColor, QFont, QPainter
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
     QFrame,
     QGraphicsDropShadowEffect,
+    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -31,6 +44,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QStackedWidget,
+    QStackedLayout,
     QStatusBar,
     QStyledItemDelegate,
     QStyle,
@@ -57,6 +71,7 @@ from .camera_worker import CameraWorker
 from .preset_panel import PresetPanel
 from .recipe_browser import RecipeBrowserDialog
 from .recipe_creator import RecipeCreatorDialog
+from .styles import PALETTE
 
 
 PRESETS_DIR = Path(__file__).resolve().parent.parent / 'recipes' / 'presets'
@@ -158,7 +173,7 @@ class SlotItemDelegate(QStyledItemDelegate):
         is_selected = bool(option.state & QStyle.StateFlag.State_Selected)
         is_hover    = bool(option.state & QStyle.StateFlag.State_MouseOver)
 
-        sim_color_hex: str = index.data(Qt.ItemDataRole.UserRole + 1) or '#666670'
+        sim_color_hex: str = index.data(Qt.ItemDataRole.UserRole + 1) or PALETTE['simDefault']
         sim_color          = QColor(sim_color_hex)
         slot_text: str     = index.data(Qt.ItemDataRole.DisplayRole) or ''
         sim_name: str      = index.data(Qt.ItemDataRole.UserRole)     or ''
@@ -166,11 +181,9 @@ class SlotItemDelegate(QStyledItemDelegate):
 
         # ── Background ───────────────────────────────────────────────────────
         if is_selected:
-            painter.fillRect(r, QColor('#1a1a26'))
-            # Left accent stripe
-            painter.fillRect(QRect(r.left(), r.top(), self._STRIPE_W, r.height()), sim_color)
+            painter.fillRect(r, QColor(PALETTE['slotSel']))
         elif is_hover:
-            painter.fillRect(r, QColor('#14141e'))
+            painter.fillRect(r, QColor(PALETTE['slotHover']))
 
         # ── Slot label (C1 … C7) ─────────────────────────────────────────────
         slot_font = QFont(painter.font())
@@ -178,7 +191,7 @@ class SlotItemDelegate(QStyledItemDelegate):
         slot_font.setWeight(QFont.Weight.Bold)
         painter.setFont(slot_font)
 
-        label_color = sim_color if is_selected else QColor('#c4c4d8')
+        label_color = sim_color if is_selected else QColor(PALETTE['textBright'])
         painter.setPen(label_color)
 
         text_x = r.left() + self._STRIPE_W + 12
@@ -193,7 +206,7 @@ class SlotItemDelegate(QStyledItemDelegate):
             dot_font = QFont(painter.font())
             dot_font.setPointSize(7)
             painter.setFont(dot_font)
-            dot_color = QColor(sim_color_hex) if is_selected else QColor('#5a5a72')
+            dot_color = QColor(sim_color_hex) if is_selected else QColor(PALETTE['textMute'])
             painter.setPen(dot_color)
             painter.drawText(
                 QRect(r.right() - 16, r.top() + 8, 12, 12),
@@ -207,7 +220,7 @@ class SlotItemDelegate(QStyledItemDelegate):
             sim_font.setPointSize(8)
             sim_font.setWeight(QFont.Weight.Normal)
             painter.setFont(sim_font)
-            sim_label_color = QColor(sim_color_hex) if is_selected else QColor('#5a5a72')
+            sim_label_color = QColor(sim_color_hex) if is_selected else QColor(PALETTE['textMute'])
             painter.setPen(sim_label_color)
             painter.drawText(
                 QRect(text_x, r.top() + 34, r.width() - text_x - 8, 18),
@@ -216,10 +229,173 @@ class SlotItemDelegate(QStyledItemDelegate):
             )
 
         # ── Bottom separator ─────────────────────────────────────────────────
-        painter.setPen(QColor('#1a1a22'))
+        painter.setPen(QColor(PALETTE['slotSep']))
         painter.drawLine(r.left(), r.bottom(), r.right(), r.bottom())
 
         painter.restore()
+
+
+# ---------------------------------------------------------------------------
+# Toast / snackbar status surface
+# ---------------------------------------------------------------------------
+
+class ToastStatusBar(QStatusBar):
+    """Status bar that mirrors every message into the toast overlay."""
+
+    messageRouted = pyqtSignal(str, int)
+
+    def showMessage(self, message: str, timeout: int = 0) -> None:
+        super().showMessage(message, timeout)
+        if message:
+            self.messageRouted.emit(message, timeout)
+
+
+class Toast(QWidget):
+    """Single slide/fade snackbar."""
+
+    def __init__(self, message: str, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName('Toast')
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setMaximumWidth(360)
+
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(14, 10, 14, 10)
+        lay.setSpacing(0)
+
+        label = QLabel(message)
+        label.setWordWrap(True)
+        label.setMaximumWidth(326)
+        label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        lay.addWidget(label)
+
+        self._opacity = QGraphicsOpacityEffect(self)
+        self._opacity.setOpacity(0.0)
+        self.setGraphicsEffect(self._opacity)
+
+        self.setStyleSheet(
+            f"""
+            QWidget#Toast {{
+                background-color: {PALETTE['panelRaised']};
+                border: 1px solid {PALETTE['border']};
+                border-left: 3px solid {PALETTE['accent']};
+                border-radius: 8px;
+            }}
+            QWidget#Toast QLabel {{
+                color: {PALETTE['text']};
+                font-weight: 600;
+            }}
+            """
+        )
+
+    def animate_in(self, start: QPoint, end: QPoint) -> None:
+        self.move(start)
+        self.show()
+        self.raise_()
+
+        pos = QPropertyAnimation(self, b'pos', self)
+        pos.setDuration(160)
+        pos.setStartValue(start)
+        pos.setEndValue(end)
+        pos.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        opacity = QPropertyAnimation(self._opacity, b'opacity', self)
+        opacity.setDuration(120)
+        opacity.setStartValue(0.0)
+        opacity.setEndValue(1.0)
+        opacity.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        group = QParallelAnimationGroup(self)
+        group.addAnimation(pos)
+        group.addAnimation(opacity)
+        self._anim = group
+        group.start()
+
+    def animate_to(self, end: QPoint) -> None:
+        pos = QPropertyAnimation(self, b'pos', self)
+        pos.setDuration(140)
+        pos.setStartValue(self.pos())
+        pos.setEndValue(end)
+        pos.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._move_anim = pos
+        pos.start()
+
+    def animate_out(self, end: QPoint, finished) -> None:
+        pos = QPropertyAnimation(self, b'pos', self)
+        pos.setDuration(160)
+        pos.setStartValue(self.pos())
+        pos.setEndValue(end)
+        pos.setEasingCurve(QEasingCurve.Type.InCubic)
+
+        opacity = QPropertyAnimation(self._opacity, b'opacity', self)
+        opacity.setDuration(120)
+        opacity.setStartValue(self._opacity.opacity())
+        opacity.setEndValue(0.0)
+        opacity.setEasingCurve(QEasingCurve.Type.InCubic)
+
+        group = QParallelAnimationGroup(self)
+        group.addAnimation(pos)
+        group.addAnimation(opacity)
+        group.finished.connect(finished)
+        self._anim = group
+        group.start()
+
+
+class ToastOverlay(QWidget):
+    """Bottom-right toast stack that never blocks clicks."""
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+        self._toasts: list[Toast] = []
+        self._margin = 16
+        self._gap = 8
+
+    def show_message(self, message: str, timeout: int = 3000) -> None:
+        toast = Toast(message, self)
+        toast.adjustSize()
+        toast.resize(min(toast.sizeHint().width(), 360), toast.sizeHint().height())
+        self._toasts.append(toast)
+        self._layout_toasts(animated=True, new_toast=toast)
+        QTimer.singleShot(timeout if timeout > 0 else 3000, lambda: self.dismiss(toast))
+
+    def dismiss(self, toast: Toast) -> None:
+        if toast not in self._toasts:
+            return
+        self._toasts.remove(toast)
+        self._layout_toasts(animated=True)
+
+        def finish() -> None:
+            toast.deleteLater()
+
+        end = QPoint(self.width() + self._margin, toast.y())
+        toast.animate_out(end, finish)
+
+    def relayout(self) -> None:
+        self._layout_toasts(animated=False)
+
+    def _target_positions(self) -> dict[Toast, QPoint]:
+        positions: dict[Toast, QPoint] = {}
+        y = self.height() - self._margin
+        for toast in reversed(self._toasts):
+            y -= toast.height()
+            x = max(self._margin, self.width() - toast.width() - self._margin)
+            positions[toast] = QPoint(x, y)
+            y -= self._gap
+        return positions
+
+    def _layout_toasts(self, *, animated: bool, new_toast: Toast | None = None) -> None:
+        positions = self._target_positions()
+        for toast, end in positions.items():
+            if toast is new_toast:
+                start = QPoint(self.width() + self._margin, end.y())
+                toast.animate_in(start, end)
+            elif animated:
+                toast.animate_to(end)
+            else:
+                toast.move(end)
+                toast.show()
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +423,10 @@ class MainWindow(QMainWindow):
         self._busy      = False
         self._model     = 'Camera'
         self._browser: Optional[RecipeBrowserDialog] = None
+        self._stack_anim: Optional[QParallelAnimationGroup] = None
+        self._slot_stripe_anim: Optional[QPropertyAnimation] = None
+        self._conn_dot_anim: Optional[QPropertyAnimation] = None
+        self._activity_anim: Optional[QPropertyAnimation] = None
 
         self._build_ui()
         self._setup_worker()
@@ -268,6 +448,7 @@ class MainWindow(QMainWindow):
         # ── Top toolbar ──────────────────────────────────────────────────────
         top = QWidget()
         top.setObjectName('TopBar')
+        self._top_bar = top
         top_l = QHBoxLayout(top)
         top_l.setContentsMargins(12, 6, 12, 6)
         top_l.setSpacing(8)
@@ -275,6 +456,13 @@ class MainWindow(QMainWindow):
         self.connDot = QLabel('●')
         self.connDot.setObjectName('connDot')
         self.connDot.setProperty('state', 'off')
+        self.connDot.setFixedWidth(14)
+        self.connDot.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._conn_glow = QGraphicsDropShadowEffect(self.connDot)
+        self._conn_glow.setBlurRadius(0)
+        self._conn_glow.setOffset(0, 0)
+        self._conn_glow.setColor(QColor(PALETTE['danger']))
+        self.connDot.setGraphicsEffect(self._conn_glow)
 
         self.connStatus = QLabel('Disconnected')
         self.connStatus.setProperty('role', 'dim')
@@ -320,6 +508,20 @@ class MainWindow(QMainWindow):
 
         root.addWidget(top)
 
+        self.activityStrip = QFrame()
+        self.activityStrip.setObjectName('ActivityStrip')
+        self.activityStrip.setFixedHeight(3)
+        self.activityStrip.setVisible(False)
+        self.activityStrip.setStyleSheet(
+            f"QFrame#ActivityStrip {{ background-color: {PALETTE['panel']}; border: none; }}"
+        )
+        self.activityFill = QFrame(self.activityStrip)
+        self.activityFill.setObjectName('ActivityStripFill')
+        self.activityFill.setStyleSheet(
+            f"QFrame#ActivityStripFill {{ background-color: {PALETTE['accent']}; border: none; }}"
+        )
+        root.addWidget(self.activityStrip)
+
         # ── Main content: slot rail │ preset panel ───────────────────────────
         content = QWidget()
         content_l = QHBoxLayout(content)
@@ -335,6 +537,11 @@ class MainWindow(QMainWindow):
         self.slotRail.setItemDelegate(SlotItemDelegate(self.slotRail))
         self.slotRail.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.slotRail.setMouseTracking(True)
+        self.slotRail.viewport().installEventFilter(self)
+        self.slotStripe = QFrame(self.slotRail.viewport())
+        self.slotStripe.setObjectName('SlotStripe')
+        self.slotStripe.setFixedWidth(SlotItemDelegate._STRIPE_W)
+        self.slotStripe.hide()
 
         # Stacked preset panels — right column
         self.stack = QStackedWidget()
@@ -343,7 +550,7 @@ class MainWindow(QMainWindow):
         for slot in range(1, self.NUM_SLOTS + 1):
             item = QListWidgetItem(f'C{slot}')
             item.setData(Qt.ItemDataRole.UserRole,     '')        # film sim name
-            item.setData(Qt.ItemDataRole.UserRole + 1, '#666670') # sim colour
+            item.setData(Qt.ItemDataRole.UserRole + 1, PALETTE['simDefault']) # sim colour
             item.setData(Qt.ItemDataRole.UserRole + 2, False)     # dirty flag
             self.slotRail.addItem(item)
 
@@ -354,18 +561,217 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(panel)
             self.panels.append(panel)
 
-        self.slotRail.currentRowChanged.connect(self.stack.setCurrentIndex)
+        self.slotRail.currentRowChanged.connect(self._on_slot_changed)
         self.slotRail.setCurrentRow(0)
+        self._move_slot_stripe(0, animated=False)
 
         content_l.addWidget(self.slotRail)
         content_l.addWidget(self.stack, 1)
         root.addWidget(content, 1)
 
-        self.setStatusBar(QStatusBar())
+        status = ToastStatusBar()
+        status.messageRouted.connect(self._show_toast)
+        self.setStatusBar(status)
         self.statusBar().setSizeGripEnabled(True)
-        self.statusBar().showMessage('Ready')
+        self._toastOverlay = ToastOverlay(central)
+        self._toastOverlay.setGeometry(central.rect())
+        self._toastOverlay.raise_()
+        self._show_status('Ready')
 
     # ──────────────────────────────────────────────────────── worker setup ───
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, '_toastOverlay'):
+            self._toastOverlay.setGeometry(self.centralWidget().rect())
+            self._toastOverlay.relayout()
+            self._toastOverlay.raise_()
+        if hasattr(self, 'activityStrip') and self.activityStrip.isVisible():
+            self._start_activity_strip()
+
+    def eventFilter(self, obj, event) -> bool:
+        if (
+            hasattr(self, 'slotRail')
+            and obj is self.slotRail.viewport()
+            and event.type() in (QEvent.Type.Resize, QEvent.Type.Show)
+        ):
+            QTimer.singleShot(0, lambda: self._move_slot_stripe(self.slotRail.currentRow(), animated=False))
+        return super().eventFilter(obj, event)
+
+    def _show_status(self, message: str, timeout: int = 0) -> None:
+        self.statusBar().showMessage(message, timeout)
+
+    def _show_toast(self, message: str, timeout: int = 0) -> None:
+        if hasattr(self, '_toastOverlay'):
+            self._toastOverlay.show_message(message, timeout if timeout > 0 else 3000)
+
+    def _start_activity_strip(self) -> None:
+        self.activityStrip.setVisible(True)
+        self.activityStrip.raise_()
+        width = max(1, self.activityStrip.width())
+        height = max(1, self.activityStrip.height())
+        fill_width = max(80, int(width * 0.32))
+
+        if self._activity_anim is not None:
+            self._activity_anim.stop()
+
+        self.activityFill.setGeometry(QRect(-fill_width, 0, fill_width, height))
+        anim = QPropertyAnimation(self.activityFill, b'geometry', self)
+        anim.setDuration(720)
+        anim.setStartValue(QRect(-fill_width, 0, fill_width, height))
+        anim.setEndValue(QRect(width, 0, fill_width, height))
+        anim.setLoopCount(-1)
+        anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self._activity_anim = anim
+        anim.start()
+
+    def _stop_activity_strip(self) -> None:
+        if self._activity_anim is not None:
+            self._activity_anim.stop()
+            self._activity_anim = None
+        self.activityStrip.setVisible(False)
+
+    def _set_connection_visual(self, state: str) -> None:
+        self.connDot.setProperty('state', state)
+        self.connDot.style().unpolish(self.connDot)
+        self.connDot.style().polish(self.connDot)
+
+        if self._conn_dot_anim is not None:
+            self._conn_dot_anim.stop()
+
+        color = (
+            PALETTE['ok']
+            if state == 'on'
+            else PALETTE['accent']
+            if state == 'connecting'
+            else PALETTE['danger']
+        )
+        self._conn_glow.setColor(QColor(color))
+
+        anim = QPropertyAnimation(self._conn_glow, b'blurRadius', self)
+        if state == 'connecting':
+            anim.setDuration(520)
+            anim.setStartValue(3.0)
+            anim.setKeyValueAt(0.5, 18.0)
+            anim.setEndValue(3.0)
+            anim.setLoopCount(-1)
+            anim.setEasingCurve(QEasingCurve.Type.InOutSine)
+        elif state == 'on':
+            anim.setDuration(160)
+            anim.setStartValue(self._conn_glow.blurRadius())
+            anim.setEndValue(14.0)
+            anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        else:
+            anim.setDuration(120)
+            anim.setStartValue(self._conn_glow.blurRadius())
+            anim.setEndValue(0.0)
+            anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._conn_dot_anim = anim
+        anim.start()
+
+    def _on_slot_changed(self, row: int) -> None:
+        self._move_slot_stripe(row, animated=True)
+        self._cross_fade_stack(row)
+
+    def _cross_fade_stack(self, index: int) -> None:
+        if index < 0 or index >= self.stack.count() or index == self.stack.currentIndex():
+            return
+
+        if self._stack_anim is not None:
+            self._stack_anim.stop()
+            self._stack_anim = None
+            for i in range(self.stack.count()):
+                self.stack.widget(i).setGraphicsEffect(None)
+            layout = self.stack.layout()
+            if isinstance(layout, QStackedLayout):
+                layout.setStackingMode(QStackedLayout.StackingMode.StackOne)
+
+        old_page = self.stack.currentWidget()
+        new_page = self.stack.widget(index)
+        layout = self.stack.layout()
+        if isinstance(layout, QStackedLayout):
+            layout.setStackingMode(QStackedLayout.StackingMode.StackAll)
+
+        for i in range(self.stack.count()):
+            page = self.stack.widget(i)
+            effect = QGraphicsOpacityEffect(page)
+            effect.setOpacity(1.0 if page is old_page else 0.0)
+            page.setGraphicsEffect(effect)
+
+        self.stack.setCurrentIndex(index)
+        new_page.raise_()
+
+        old_anim = QPropertyAnimation(old_page.graphicsEffect(), b'opacity', self)
+        old_anim.setDuration(120)
+        old_anim.setStartValue(1.0)
+        old_anim.setEndValue(0.0)
+        old_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        new_anim = QPropertyAnimation(new_page.graphicsEffect(), b'opacity', self)
+        new_anim.setDuration(120)
+        new_anim.setStartValue(0.0)
+        new_anim.setEndValue(1.0)
+        new_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        group = QParallelAnimationGroup(self)
+        group.addAnimation(old_anim)
+        group.addAnimation(new_anim)
+
+        def finish() -> None:
+            if isinstance(layout, QStackedLayout):
+                layout.setStackingMode(QStackedLayout.StackingMode.StackOne)
+            for i in range(self.stack.count()):
+                self.stack.widget(i).setGraphicsEffect(None)
+            self._stack_anim = None
+
+        group.finished.connect(finish)
+        self._stack_anim = group
+        group.start()
+
+    def _move_slot_stripe(self, row: int, *, animated: bool) -> None:
+        if row < 0:
+            self.slotStripe.hide()
+            return
+        item = self.slotRail.item(row)
+        if item is None:
+            self.slotStripe.hide()
+            return
+        rect = self.slotRail.visualItemRect(item)
+        if not rect.isValid():
+            self.slotStripe.hide()
+            return
+
+        self._update_slot_stripe_color(row)
+        target = QRect(rect.left(), rect.top(), SlotItemDelegate._STRIPE_W, rect.height())
+
+        if not self.slotStripe.isVisible() or not animated:
+            if self._slot_stripe_anim is not None:
+                self._slot_stripe_anim.stop()
+            self.slotStripe.setGeometry(target)
+            self.slotStripe.show()
+            self.slotStripe.raise_()
+            return
+
+        if self._slot_stripe_anim is not None:
+            self._slot_stripe_anim.stop()
+
+        anim = QPropertyAnimation(self.slotStripe, b'geometry', self)
+        anim.setDuration(160)
+        anim.setStartValue(self.slotStripe.geometry())
+        anim.setEndValue(target)
+        anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._slot_stripe_anim = anim
+        self.slotStripe.raise_()
+        anim.start()
+
+    def _update_slot_stripe_color(self, row: int | None = None) -> None:
+        if row is None:
+            row = self.slotRail.currentRow()
+        item = self.slotRail.item(row)
+        color = item.data(Qt.ItemDataRole.UserRole + 1) if item else PALETTE['simDefault']
+        self.slotStripe.setStyleSheet(
+            f"QFrame#SlotStripe {{ background-color: {color}; border: none; }}"
+        )
 
     def _setup_worker(self) -> None:
         self._thread = QThread(self)
@@ -379,7 +785,7 @@ class MainWindow(QMainWindow):
         self._worker.allSlotsRead.connect(self._on_all_slots_read)
         self._worker.slotWritten.connect(self._on_slot_written)
         self._worker.writeFailed.connect(self._on_write_failed)
-        self._worker.statusMessage.connect(self.statusBar().showMessage)
+        self._worker.statusMessage.connect(self._show_status)
 
         self._connectRequested.connect(self._worker.connect_camera)
         self._disconnectRequested.connect(self._worker.disconnect_camera)
@@ -392,18 +798,17 @@ class MainWindow(QMainWindow):
 
     def _set_connected(self, connected: bool) -> None:
         self._connected = connected
-        self.connDot.setProperty('state', 'on' if connected else 'off')
+        self._set_connection_visual('on' if connected else 'off')
         self.connStatus.setText(f'Connected — {self._model}' if connected else 'Disconnected')
         self.connectBtn.setText('Disconnect' if connected else 'Connect')
         self.readAllBtn.setEnabled(connected and not self._busy)
         for p in self.panels:
             p.writeButton.setEnabled(connected and not self._busy)
-        # Force Qt to re-evaluate the stylesheet property
-        self.connDot.style().unpolish(self.connDot)
-        self.connDot.style().polish(self.connDot)
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
+        if not busy:
+            self._stop_activity_strip()
         self.connectBtn.setEnabled(not busy)
         self.readAllBtn.setEnabled(not busy and self._connected)
         for p in self.panels:
@@ -413,10 +818,11 @@ class MainWindow(QMainWindow):
         if self._connected:
             self._set_connected(False)
             self._disconnectRequested.emit()
-            self.statusBar().showMessage('Disconnected')
+            self._show_status('Disconnected')
         else:
             self._set_busy(True)
-            self.statusBar().showMessage('Connecting...')
+            self._set_connection_visual('connecting')
+            self._show_status('Connecting...')
             self._connectRequested.emit()
 
     # ─────────────────────────────────────────────────── worker responses ────
@@ -425,19 +831,20 @@ class MainWindow(QMainWindow):
         self._model = model
         self._set_connected(True)
         self._set_busy(True)
-        self.statusBar().showMessage('Connected. Reading presets...')
+        self._start_activity_strip()
+        self._show_status('Connected')
 
     def _on_connection_failed(self, msg: str) -> None:
         self._set_busy(False)
         self._set_connected(False)
         QMessageBox.critical(self, 'Connection failed', msg)
-        self.statusBar().showMessage('Connection failed')
+        self._show_status('Connection failed')
 
     def _on_disconnected(self) -> None:
         self._set_busy(False)
         if self._connected:
             self._set_connected(False)
-            self.statusBar().showMessage('Disconnected')
+            self._show_status('Disconnected')
 
     def _on_slot_read(self, slot: int, name: str, values) -> None:
         self.panels[slot - 1].load_values(name, values)
@@ -448,18 +855,18 @@ class MainWindow(QMainWindow):
         msg = f'Read {ok}/{total} slots'
         if ok < total:
             msg += f' ({total - ok} errors)'
-        self.statusBar().showMessage(msg)
+        self._show_status(msg)
 
     def _on_slot_written(self, slot: int, name: str, values) -> None:
         self._set_busy(False)
         self.panels[slot - 1].load_values(name, values)
         self._update_slot_item(slot)
-        self.statusBar().showMessage(f'Wrote slot C{slot}')
+        self._show_status(f'Wrote slot C{slot}')
 
     def _on_write_failed(self, slot: int, msg: str) -> None:
         self._set_busy(False)
         QMessageBox.critical(self, 'Write failed', msg)
-        self.statusBar().showMessage(f'Write to C{slot} failed')
+        self._show_status(f'Write to C{slot} failed')
 
     # ─────────────────────────────────────────────────────── slot rail ───────
 
@@ -471,10 +878,12 @@ class MainWindow(QMainWindow):
         panel    = self.panels[slot - 1]
         sim_val  = int(panel.filmSimCombo.currentData() or 0)
         sim_name = FilmSimLabels.get(sim_val, '')
-        sim_color = SIM_COLORS.get(sim_val, '#666670')
+        sim_color = SIM_COLORS.get(sim_val, PALETTE['simDefault'])
         item.setData(Qt.ItemDataRole.UserRole,     sim_name)
         item.setData(Qt.ItemDataRole.UserRole + 1, sim_color)
         item.setData(Qt.ItemDataRole.UserRole + 2, panel.is_dirty)
+        if self.slotRail.currentRow() == slot - 1:
+            self._update_slot_stripe_color(slot - 1)
         self.slotRail.viewport().update()
 
     def _on_panel_dirty_changed(self, slot: int, dirty: bool) -> None:
@@ -489,7 +898,7 @@ class MainWindow(QMainWindow):
         if not self._connected:
             return
         self._set_busy(True)
-        self.statusBar().showMessage('Reading presets...')
+        self._start_activity_strip()
         self._readAllRequested.emit()
 
     def _on_write_slot(self, slot: int) -> None:
@@ -507,7 +916,8 @@ class MainWindow(QMainWindow):
         if confirm != QMessageBox.StandardButton.Yes:
             return
         self._set_busy(True)
-        self.statusBar().showMessage(f'Writing slot C{slot}...')
+        self._start_activity_strip()
+        self._show_status(f'Writing slot C{slot}...')
         self._writeSlotRequested.emit(slot, name, values)
 
     # ──────────────────────────────────────────────────── recipe browser ─────
@@ -526,7 +936,7 @@ class MainWindow(QMainWindow):
         self.panels[slot - 1].load_values(name, values)
         self.slotRail.setCurrentRow(slot - 1)
         self._update_slot_item(slot)
-        self.statusBar().showMessage(
+        self._show_status(
             f'Loaded "{name}" into C{slot} — press Write to send to camera'
         )
 
@@ -546,7 +956,8 @@ class MainWindow(QMainWindow):
         self.slotRail.setCurrentRow(slot - 1)
         self._update_slot_item(slot)
         self._set_busy(True)
-        self.statusBar().showMessage(f'Writing "{name}" to C{slot}...')
+        self._start_activity_strip()
+        self._show_status(f'Writing "{name}" to C{slot}...')
         self._writeSlotRequested.emit(slot, name, values)
 
     def _on_browser_destroyed(self) -> None:
@@ -562,7 +973,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def _on_recipe_saved_from_panel(self, slug: str, name: str, values) -> None:
-        self.statusBar().showMessage(f'Recipe "{name}" saved to My Recipes')
+        self._show_status(f'Recipe "{name}" saved to My Recipes')
         if self._browser is not None:
             self._browser.refresh_user_recipes()
 
@@ -595,7 +1006,7 @@ class MainWindow(QMainWindow):
         if not path:
             return
         if pix.save(path, 'PNG'):
-            self.statusBar().showMessage(f'Card exported: {os.path.basename(path)}')
+            self._show_status(f'Card exported: {os.path.basename(path)}')
         else:
             QMessageBox.critical(self, 'Export failed', f'Could not save to {path}')
 
@@ -620,7 +1031,7 @@ class MainWindow(QMainWindow):
         try:
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
-            self.statusBar().showMessage(f'Exported {os.path.basename(path)}')
+            self._show_status(f'Exported {os.path.basename(path)}')
         except OSError as e:
             QMessageBox.critical(self, 'Export failed', str(e))
 
@@ -646,7 +1057,7 @@ class MainWindow(QMainWindow):
         msg = f'Exported {ok}/{self.NUM_SLOTS} slots to {os.path.basename(folder)}'
         if errors:
             msg += f' ({errors} errors)'
-        self.statusBar().showMessage(msg)
+        self._show_status(msg)
 
     def _on_import_clicked(self) -> None:
         PRESETS_DIR.mkdir(parents=True, exist_ok=True)
@@ -666,7 +1077,7 @@ class MainWindow(QMainWindow):
         panel = self._current_panel()
         panel.load_values(name, values)
         self._update_slot_item(panel.slot)
-        self.statusBar().showMessage(
+        self._show_status(
             f'Loaded {os.path.basename(path)} into C{panel.slot} (not yet written to camera)'
         )
 
@@ -692,7 +1103,7 @@ class MainWindow(QMainWindow):
                 loaded += 1
             except Exception as e:
                 print(f'Import {fpath.name}: {e}')
-        self.statusBar().showMessage(
+        self._show_status(
             f'Imported {loaded} recipe(s) into C1–C{loaded} (not yet written to camera)'
         )
 

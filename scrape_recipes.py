@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-scrape_recipes.py — scrape X-Trans V film simulation recipes from fujixweekly.com
+scrape_recipes.py — scrape film simulation recipes from fujixweekly.com
 
-Saves one JSON file per recipe to recipes/builtin/
-Downloads one sample image per recipe to recipes/builtin/images/
+Saves one JSON file per recipe to recipes/builtin/<sensor>/
+Downloads one sample image per recipe to recipes/builtin/<sensor>/images/
 
 Usage:
     pip install requests beautifulsoup4
-    python scrape_recipes.py [--dry-run] [--limit N]
+    python scrape_recipes.py [--sensor SENSOR] [--dry-run] [--limit N]
 
 Options:
+    --sensor    Sensor folder name: x-trans-v (default) or x-trans-iv
     --dry-run   Print discovered URLs without fetching/saving anything
     --limit N   Only scrape the first N recipes (useful for testing)
 """
@@ -32,9 +33,17 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 # Configuration
 # ---------------------------------------------------------------------------
 
-INDEX_URL = "https://fujixweekly.com/fujifilm-x-trans-v-recipes/"
-OUTPUT_DIR = Path("recipes/builtin/x-trans-v")
-IMAGE_DIR = OUTPUT_DIR / "images"
+SENSOR_CONFIG: dict[str, dict] = {
+    "x-trans-v": {
+        "index_url": "https://fujixweekly.com/fujifilm-x-trans-v-recipes/",
+        "output_dir": Path("recipes/builtin/x-trans-v"),
+    },
+    "x-trans-iv": {
+        "index_url": "https://fujixweekly.com/fujifilm-x-trans-iv-recipes/",
+        "output_dir": Path("recipes/builtin/x-trans-iv"),
+    },
+}
+
 REQUEST_DELAY = 1.5   # seconds between requests — be polite
 
 HEADERS = {
@@ -161,14 +170,14 @@ def parse_params(soup: BeautifulSoup) -> dict[str, str]:
     """
     Extract recipe parameters from the article body.
 
-    The site formats parameters like:
-        <strong>Film Simulation: Provia/Standard</strong><br/>
-        <strong>White Balance: Auto, +1 Red & -2 Blue<br/>
-        Highlight: -1<br/>
-        Shadow: -2</strong>
+    New format — each param on its own line inside <p>:
+        Film Simulation: Classic Chrome
+        Dynamic Range: DR200
+        ...
 
-    We get all text from the article, split on newlines, then parse
-    lines matching  "Key: Value".
+    Old format — pipe-separated <strong> block where the first segment is
+    the unlabelled film simulation name:
+        Classic Chrome | Dynamic Range: DR200 | Highlight: 0 | ...
     """
     content = get_article_content(soup)
     if content is None:
@@ -177,9 +186,22 @@ def parse_params(soup: BeautifulSoup) -> dict[str, str]:
     params: dict[str, str] = {}
 
     for p in content.find_all("p"):
-        # get_text with newline separator handles <br/> correctly in bs4
         raw = p.get_text(separator="\n")
         lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+
+        # Old format: first line is the bare film sim name, no "Key:" prefix.
+        # e.g. "<strong>Classic Chrome\nDynamic Range: DR200\n..."
+        # Links inside the <strong> can split "Acros (+Y, +R, +G)" into 3 lines,
+        # so check if ANY of the next 3 lines contains a Key:Value pair.
+        if (
+            "filmSimulation" not in params
+            and len(lines) >= 2
+            and ":" not in lines[0]
+            and len(lines[0]) < 40
+            and re.match(r"^[A-Za-z][A-Za-z0-9 \-/.+(),]+$", lines[0])
+            and any(":" in lines[i] for i in range(1, min(4, len(lines))))
+        ):
+            params["filmSimulation"] = lines[0].rstrip(" (")
 
         for line in lines:
             # "Key: Value" or "Key:Value"
@@ -191,6 +213,10 @@ def parse_params(soup: BeautifulSoup) -> dict[str, str]:
 
             canonical = PARAM_MAP.get(key_raw)
             if canonical and canonical not in params:
+                # Film sim values like "Acros (" are truncated due to inline links
+                # splitting the remainder onto a new line — strip the dangling paren.
+                if canonical == "filmSimulation":
+                    value = value.rstrip(" (")
                 params[canonical] = value
 
     return params
@@ -216,8 +242,8 @@ def get_first_article_image(soup: BeautifulSoup) -> str:
     return ""
 
 
-def get_title(soup: BeautifulSoup) -> str:
-    """Best-effort page title extraction."""
+def _get_page_title(soup: BeautifulSoup) -> str:
+    """Raw H1/H2 page title."""
     for selector in (
         ("h1", {"class": re.compile(r"entry-title|post-title")}),
         ("h2", {"class": re.compile(r"entry-title|post-title")}),
@@ -229,6 +255,52 @@ def get_title(soup: BeautifulSoup) -> str:
         if el:
             return el.get_text(strip=True)
     return ""
+
+
+# Curly/angled opening+closing quote pairs used on fujixweekly
+_QUOTED_NAME = re.compile(r'[“‘«‹]([^”’»›]{2,60})[”’»›]')
+
+
+def _clean_page_title(title: str) -> str:
+    """Extract a short recipe name from a verbose fujixweekly post title.
+
+    Examples:
+      "Fujifilm X-E4 Film Simulation Recipe: Kodachrome 25"  → "Kodachrome 25"
+      "Kodak Portra 160 — Fujifilm X100V Film Simulation Recipe" → "Kodak Portra 160"
+      "McCurry Kodachrome — A Fujifilm X-Trans IV Film Simulation Recipe" → "McCurry Kodachrome"
+    """
+    # "... Recipe: RecipeName"  →  take RecipeName
+    m = re.search(r'[Rr]ecipes?:\s*(.+)$', title)
+    if m:
+        return m.group(1).strip()
+
+    # "RecipeName — [A ]Fujifilm ..."  →  take RecipeName
+    m = re.match(r'^(.+?)\s+[—–\-]+\s+(?:A\s+)?Fujifilm', title)
+    if m:
+        return m.group(1).strip()
+
+    # Strip trailing boilerplate
+    title = re.sub(r'\s+[—–\-]+\s+Fujifilm.*', '', title).strip()
+    title = re.sub(r'\s+[Ff]ilm [Ss]imulation [Rr]ecipes?\b.*', '', title).strip()
+    return title
+
+
+def get_recipe_name(soup: BeautifulSoup) -> str:
+    """Return a clean recipe name for display.
+
+    Primary: quoted name in the first figcaption, e.g.
+        'Autumn on Kodachrome – UT – X-E4 – "Kodachrome 25"'  →  'Kodachrome 25'
+    Fallback: clean up the verbose H1 page title.
+    """
+    content = get_article_content(soup)
+    if content:
+        for fig in content.find_all("figcaption"):
+            text = fig.get_text(" ", strip=True)
+            m = _QUOTED_NAME.search(text)
+            if m:
+                return m.group(1).strip()
+
+    return _clean_page_title(_get_page_title(soup))
 
 
 # ---------------------------------------------------------------------------
@@ -258,17 +330,65 @@ def image_filename(slug: str, image_url: str) -> str:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Scrape X-Trans V recipes from fujixweekly.com")
+    parser = argparse.ArgumentParser(description="Scrape Fujifilm recipes from fujixweekly.com")
+    parser.add_argument(
+        "--sensor",
+        choices=list(SENSOR_CONFIG),
+        default="x-trans-v",
+        help="Sensor generation to scrape (default: x-trans-v)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="List URLs only, don't save")
     parser.add_argument("--limit", type=int, default=0, help="Max recipes to scrape (0 = all)")
+    parser.add_argument(
+        "--patch-titles", action="store_true",
+        help="Re-fetch existing recipes and update only the title field",
+    )
     args = parser.parse_args()
+
+    cfg = SENSOR_CONFIG[args.sensor]
+    INDEX_URL = cfg["index_url"]
+    OUTPUT_DIR = cfg["output_dir"]
+    IMAGE_DIR = OUTPUT_DIR / "images"
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
     session = requests.Session()
 
+    # ---- Patch-titles mode: update title field in existing JSONs ----
+    if args.patch_titles:
+        json_files = sorted(f for f in OUTPUT_DIR.glob("*.json") if f.name != "_index.json")
+        if args.limit:
+            json_files = json_files[: args.limit]
+        print(f"[*] Patching titles for {len(json_files)} recipes in {OUTPUT_DIR}")
+        updated = errors = 0
+        for i, json_path in enumerate(json_files, 1):
+            data = json.loads(json_path.read_text(encoding="utf-8"))
+            url = data.get("source", "")
+            if not url:
+                continue
+            try:
+                time.sleep(REQUEST_DELAY)
+                soup = get_soup(url, session)
+                new_title = get_recipe_name(soup)
+                old_title = data.get("title", "")
+                if new_title and new_title != old_title:
+                    data["title"] = new_title
+                    json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+                    print(f"[{i:>3}/{len(json_files)}] {json_path.name}")
+                    print(f"    old: {old_title!r}")
+                    print(f"    new: {new_title!r}")
+                    updated += 1
+                else:
+                    print(f"[{i:>3}/{len(json_files)}] [ok]  {json_path.name}")
+            except Exception as exc:
+                print(f"[{i:>3}/{len(json_files)}] [ERR] {json_path.name}: {exc}")
+                errors += 1
+        print(f"\n  Updated: {updated}  Errors: {errors}")
+        return
+
     # ---- Step 1: collect recipe URLs from index ----
+    print(f"[*] Sensor  : {args.sensor}")
     print(f"[*] Fetching index: {INDEX_URL}")
     index_soup = get_soup(INDEX_URL, session)
     all_urls = get_recipe_urls(index_soup)
@@ -306,7 +426,7 @@ def main() -> None:
             time.sleep(REQUEST_DELAY)
             soup = get_soup(url, session)
 
-            title = get_title(soup)
+            title = get_recipe_name(soup)
             params = parse_params(soup)
             img_url = get_first_article_image(soup) or thumb_url
 

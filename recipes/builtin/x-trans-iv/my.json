@@ -1,9 +1,10 @@
 {
   "slug": "my",
-  "title": "My Fujifilm X100V Kodachrome 64 Film Simulation Recipe",
+  "title": "Kodachrome 64",
   "source": "https://fujixweekly.com/2020/05/27/my-fujifilm-x100v-kodachrome-64-film-simulation-recipe/",
   "image": "my.jpg",
   "params": {
+    "filmSimulation": "Classic Chrome",
     "dynamicRange": "DR200",
     "highlight": "0",
     "shadow": "0",

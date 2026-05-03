@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QWheelEvent
+from PyQt6.QtGui import QColor, QWheelEvent
 from PyQt6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFrame,
+    QGraphicsDropShadowEffect,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -68,6 +69,8 @@ from profile.enums import (
 )
 from profile.preset_translate import PresetUIValues
 
+from .styles import PALETTE
+
 
 def _fill_combo(combo: QComboBox, label_dict: dict) -> None:
     for value, label in label_dict.items():
@@ -81,6 +84,34 @@ def _select_combo_value(combo: QComboBox, value: int) -> None:
             return
     if combo.count() > 0:
         combo.setCurrentIndex(0)
+
+
+def _elevate(widget: QWidget, *, blur: int, dy: int, alpha: int) -> None:
+    """Attach a single drop-shadow effect to *widget*. Qt allows one
+    QGraphicsEffect per widget, so a two-layer (tight + diffuse) elevation
+    requires two stacked widgets — see _wrap_elevation."""
+    eff = QGraphicsDropShadowEffect(widget)
+    eff.setBlurRadius(blur)
+    eff.setXOffset(0)
+    eff.setYOffset(dy)
+    eff.setColor(QColor(0, 0, 0, alpha))
+    widget.setGraphicsEffect(eff)
+
+
+def _wrap_elevation(gb: QGroupBox) -> QWidget:
+    """Wrap *gb* so we get both a tight (4 px) rim shadow and a 16 px diffuse
+    halo. The wrapper carries the diffuse layer; the group box itself carries
+    the tight contact shadow. Returns the wrapper, which should be added to
+    the parent layout in place of the group box."""
+    wrap = QWidget()
+    wrap.setObjectName('GroupBoxShadowWrap')
+    lay = QVBoxLayout(wrap)
+    lay.setContentsMargins(2, 2, 2, 6)  # leave room so the halo isn't clipped
+    lay.setSpacing(0)
+    lay.addWidget(gb)
+    _elevate(wrap, blur=16, dy=4, alpha=110)   # diffuse halo
+    _elevate(gb,   blur=4,  dy=1, alpha=170)   # tight contact rim
+    return wrap
 
 
 class PresetPanel(QWidget):
@@ -123,8 +154,8 @@ class PresetPanel(QWidget):
 
         container = QWidget()
         root = QVBoxLayout(container)
-        root.setContentsMargins(24, 20, 24, 20)
-        root.setSpacing(14)
+        root.setContentsMargins(16, 14, 16, 14)
+        root.setSpacing(10)
 
         # --- Header: slot tag + name editor
         header = QHBoxLayout()
@@ -149,8 +180,8 @@ class PresetPanel(QWidget):
         # --- Film / Base
         gb_base = QGroupBox('Film base')
         base_grid = QGridLayout(gb_base)
-        base_grid.setHorizontalSpacing(12)
-        base_grid.setVerticalSpacing(8)
+        base_grid.setHorizontalSpacing(8)
+        base_grid.setVerticalSpacing(6)
 
         self.filmSimCombo = NoScrollComboBox()
         _fill_combo(self.filmSimCombo, FilmSimLabels)
@@ -180,13 +211,13 @@ class PresetPanel(QWidget):
         base_grid.addWidget(self.dynRangeCombo, 1, 1)
         base_grid.addWidget(QLabel('D Range Priority'), 2, 0)
         base_grid.addWidget(self.dRangePriorityCombo, 2, 1)
-        root.addWidget(gb_base)
+        root.addWidget(_wrap_elevation(gb_base))
 
         # --- Effects
         gb_fx = QGroupBox('Effects')
         fx_grid = QGridLayout(gb_fx)
-        fx_grid.setHorizontalSpacing(12)
-        fx_grid.setVerticalSpacing(8)
+        fx_grid.setHorizontalSpacing(8)
+        fx_grid.setVerticalSpacing(6)
 
         self.grainCombo = NoScrollComboBox()
         _fill_combo(self.grainCombo, GrainEffectLabels)
@@ -205,13 +236,13 @@ class PresetPanel(QWidget):
         fx_grid.addWidget(self.ccFxBlueCombo, 2, 1)
         fx_grid.addWidget(QLabel('Smooth Skin'), 3, 0)
         fx_grid.addWidget(self.smoothSkinCombo, 3, 1)
-        root.addWidget(gb_fx)
+        root.addWidget(_wrap_elevation(gb_fx))
 
         # --- White balance
         gb_wb = QGroupBox('White balance')
         wb_grid = QGridLayout(gb_wb)
-        wb_grid.setHorizontalSpacing(12)
-        wb_grid.setVerticalSpacing(8)
+        wb_grid.setHorizontalSpacing(8)
+        wb_grid.setVerticalSpacing(6)
 
         self.wbCombo = NoScrollComboBox()
         _fill_combo(self.wbCombo, WBModeLabels)
@@ -232,13 +263,13 @@ class PresetPanel(QWidget):
         wb_grid.addWidget(self.wbShiftR, 2, 1)
         wb_grid.addWidget(QLabel('Shift B'), 3, 0)
         wb_grid.addWidget(self.wbShiftB, 3, 1)
-        root.addWidget(gb_wb)
+        root.addWidget(_wrap_elevation(gb_wb))
 
         # --- Tone
         gb_tone = QGroupBox('Tone')
         tone_grid = QGridLayout(gb_tone)
-        tone_grid.setHorizontalSpacing(12)
-        tone_grid.setVerticalSpacing(8)
+        tone_grid.setHorizontalSpacing(8)
+        tone_grid.setVerticalSpacing(6)
 
         def make_tone() -> NoScrollDoubleSpinBox:
             w = NoScrollDoubleSpinBox()
@@ -269,13 +300,13 @@ class PresetPanel(QWidget):
         tone_grid.addWidget(self.nrSpin, 4, 1)
         tone_grid.addWidget(QLabel('Clarity'), 5, 0)
         tone_grid.addWidget(self.claritySpin, 5, 1)
-        root.addWidget(gb_tone)
+        root.addWidget(_wrap_elevation(gb_tone))
 
         # --- Monochrome
         self.monoGroup = QGroupBox('Monochromatic')
         mono_grid = QGridLayout(self.monoGroup)
-        mono_grid.setHorizontalSpacing(12)
-        mono_grid.setVerticalSpacing(8)
+        mono_grid.setHorizontalSpacing(8)
+        mono_grid.setVerticalSpacing(6)
 
         self.monoWCSpin = NoScrollDoubleSpinBox()
         self.monoWCSpin.setRange(-9.0, 9.0)
@@ -289,7 +320,8 @@ class PresetPanel(QWidget):
         mono_grid.addWidget(self.monoWCSpin, 0, 1)
         mono_grid.addWidget(QLabel('Magenta / Green'), 1, 0)
         mono_grid.addWidget(self.monoMGSpin, 1, 1)
-        root.addWidget(self.monoGroup)
+        self._monoGroupWrap = _wrap_elevation(self.monoGroup)
+        root.addWidget(self._monoGroupWrap)
 
         # --- Actions
         root.addSpacerItem(QSpacerItem(0, 6, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
@@ -358,12 +390,14 @@ class PresetPanel(QWidget):
 
     def _update_mono_visibility(self) -> None:
         is_mono = self._current_film_sim() in MONOCHROME_SIMS
-        self.monoGroup.setVisible(is_mono)
+        # Toggle the wrapper so the elevation halo doesn't reserve space
+        # when the group is hidden.
+        self._monoGroupWrap.setVisible(is_mono)
         self.colorSpin.setEnabled(not is_mono)
 
     def _update_sim_dot(self) -> None:
         """Update all sim-colour indicators to match the selected simulation."""
-        color = SIM_COLORS.get(self._current_film_sim(), '#666670')
+        color = SIM_COLORS.get(self._current_film_sim(), PALETTE['simDefault'])
 
         # Coloured dot beside the Film Simulation combo label
         self.filmSimDot.setStyleSheet(f'color: {color}; font-size: 11px;')

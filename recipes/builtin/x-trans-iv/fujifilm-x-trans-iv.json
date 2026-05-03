@@ -1,0 +1,20 @@
+{
+  "slug": "fujifilm-x-trans-iv",
+  "title": "Kodak Portra 400 Warm",
+  "source": "https://fujixweekly.com/2021/07/06/fujifilm-x-trans-iv-film-simulation-recipe-kodak-portra-400-warm/",
+  "image": "fujifilm-x-trans-iv.jpg",
+  "params": {
+    "filmSimulation": "Classic Chrome",
+    "dynamicRange": "DR400",
+    "highlight": "-1",
+    "shadow": "-2",
+    "color": "+2",
+    "noiseReduction": "-4",
+    "clarity": "-2",
+    "grainEffect": "Strong, Small",
+    "colorChrome": "Strong",
+    "whiteBalance": "5500K, 0 Red & -7 Blue",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "+2/3 to +1 1/3 (typically)"
+  }
+}

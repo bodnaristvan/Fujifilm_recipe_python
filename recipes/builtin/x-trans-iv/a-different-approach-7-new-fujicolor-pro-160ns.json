@@ -1,0 +1,19 @@
+{
+  "slug": "a-different-approach-7-new-fujicolor-pro-160ns",
+  "title": "Fujicolor Pro 160NS Pulled +2",
+  "source": "https://fujixweekly.com/2021/05/24/a-different-approach-7-new-fujicolor-pro-160ns-film-simulation-recipes-yes-7/",
+  "image": "a-different-approach-7-new-fujicolor-pro-160ns.jpg",
+  "params": {
+    "filmSimulation": "PRO Neg. Hi",
+    "dynamicRange": "DR400",
+    "highlight": "0",
+    "shadow": "0",
+    "color": "0",
+    "colorChrome": "Off",
+    "noiseReduction": "-4",
+    "sharpness": "-3",
+    "whiteBalance": "Daylight, 0 Red & 0 Blue",
+    "iso": "Auto up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

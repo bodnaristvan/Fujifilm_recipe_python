@@ -1,0 +1,22 @@
+{
+  "slug": "kodachrome-blue",
+  "title": "Kodachrome Blue",
+  "source": "https://fujixweekly.com/2025/05/19/kodachrome-blue-fujifilm-x-e4-x-trans-iv-film-simulation-recipe/",
+  "image": "kodachrome-blue.jpg",
+  "params": {
+    "filmSimulation": "Eterna Bleach Bypass",
+    "dynamicRange": "DR200",
+    "grainEffect": "Weak, Small",
+    "colorChrome": "Strong",
+    "colorChromeFxBlue": "Strong",
+    "whiteBalance": "6500K, -6 Red & +9 Blue",
+    "highlight": "+2.5",
+    "shadow": "-0.5",
+    "color": "+4",
+    "sharpness": "+1",
+    "noiseReduction": "-4",
+    "clarity": "+3",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "-2/3 to 0 (typically)"
+  }
+}

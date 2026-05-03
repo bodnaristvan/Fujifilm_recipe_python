@@ -1,0 +1,17 @@
+{
+  "slug": "vivid-fujichrome-a-video-recipe-for",
+  "title": "Vivid Fujichrome — A Video Recipe for Fujifilm Cameras",
+  "source": "https://fujixweekly.com/2026/05/02/vivid-fujichrome-a-video-recipe-for-fujifilm-cameras/",
+  "image": "vivid-fujichrome-a-video-recipe-for.jpg",
+  "params": {
+    "filmSimulation": "Velvia",
+    "whiteBalance": "5000K, +2 Red & 0 Blue",
+    "dynamicRange": "DR200",
+    "highlight": "-1",
+    "shadow": "-2",
+    "color": "+2",
+    "sharpness": "0",
+    "noiseReduction": "-4",
+    "iso": "up to ISO 6400"
+  }
+}

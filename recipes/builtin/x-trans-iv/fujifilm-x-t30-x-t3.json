@@ -1,0 +1,20 @@
+{
+  "slug": "fujifilm-x-t30-x-t3",
+  "title": "Cinematic Negative",
+  "source": "https://fujixweekly.com/2022/10/21/fujifilm-x-t30-x-t3-film-simulation-recipe-cinematic-negative/",
+  "image": "fujifilm-x-t30-x-t3.jpg",
+  "params": {
+    "filmSimulation": "Eterna",
+    "dynamicRange": "DR400",
+    "highlight": "+1",
+    "shadow": "+2",
+    "color": "+4",
+    "noiseReduction": "-4",
+    "sharpness": "-1",
+    "grainEffect": "Weak",
+    "colorChrome": "Strong",
+    "whiteBalance": "Incandescent, +8 Red & -9 Blue",
+    "iso": "Auto up to ISO 6400",
+    "exposureCompensation": "0 to +2/3"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "slug": "vintage-print",
+  "title": "Vintage Print",
+  "source": "https://fujixweekly.com/2024/01/12/vintage-print-fujifilm-x-e4-x-trans-iv-film-simulation-recipe/",
+  "image": "vintage-print.jpg",
+  "params": {
+    "filmSimulation": "Classic Negative",
+    "dynamicRange": "DR200",
+    "grainEffect": "Strong, Large",
+    "colorChrome": "Strong",
+    "colorChromeFxBlue": "Strong",
+    "highlight": "+2",
+    "shadow": "-2",
+    "color": "-4",
+    "sharpness": "-4",
+    "noiseReduction": "-4",
+    "clarity": "-4",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "-2/3 to +1/3 (typically)"
+  }
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "easy-reala-ace",
+    "name": "Easy Reala Ace",
+    "params": {
+      "filmSimulation": 20,
+      "dynamicRange": 3,
+      "grainEffect": 2,
+      "smoothSkin": 0,
+      "colorChrome": 2,
+      "colorChromeFxBlue": 1,
+      "whiteBalance": 2,
+      "wbShiftR": 0,
+      "wbShiftB": 0,
+      "wbColorTemp": 6500,
+      "highlightTone": -1.0,
+      "shadowTone": 0.0,
+      "color": 0.0,
+      "sharpness": 0.0,
+      "noiseReduction": -4,
+      "clarity": 0.0,
+      "exposure": 0.0,
+      "dRangePriority": 0,
+      "monoWC": 0.0,
+      "monoMG": 0.0
+    },
+    "used_at": 1777203830.1553361
+  }
+]

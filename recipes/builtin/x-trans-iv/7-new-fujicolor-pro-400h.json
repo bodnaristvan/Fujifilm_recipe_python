@@ -1,0 +1,19 @@
+{
+  "slug": "7-new-fujicolor-pro-400h",
+  "title": "Fujicolor Pro 400H Box Speed",
+  "source": "https://fujixweekly.com/2021/05/25/7-new-fujicolor-pro-400h-film-simulation-recipes/",
+  "image": "7-new-fujicolor-pro-400h.jpg",
+  "params": {
+    "filmSimulation": "PRO Neg. Hi",
+    "dynamicRange": "DR400",
+    "highlight": "0",
+    "shadow": "0",
+    "color": "+1",
+    "colorChrome": "Strong",
+    "noiseReduction": "-4",
+    "sharpness": "-3",
+    "whiteBalance": "Daylight, +1 Red & -3 Blue",
+    "iso": "Auto up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

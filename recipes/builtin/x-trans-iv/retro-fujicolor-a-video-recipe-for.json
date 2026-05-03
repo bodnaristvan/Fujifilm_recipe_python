@@ -1,0 +1,17 @@
+{
+  "slug": "retro-fujicolor-a-video-recipe-for",
+  "title": "Retro Fujicolor — A Video Recipe for Fujifilm Cameras",
+  "source": "https://fujixweekly.com/2026/05/02/retro-fujicolor-a-video-recipe-for-fujifilm-cameras/",
+  "image": "retro-fujicolor-a-video-recipe-for.jpg",
+  "params": {
+    "filmSimulation": "Classic Negative",
+    "whiteBalance": "Auto White Priority, -1 Red & -3 Blue",
+    "dynamicRange": "DR400",
+    "highlight": "-1.5",
+    "shadow": "-1.5",
+    "color": "-1",
+    "sharpness": "-2",
+    "noiseReduction": "-4",
+    "iso": "up to ISO 6400"
+  }
+}

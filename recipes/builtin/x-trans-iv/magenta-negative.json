@@ -1,0 +1,21 @@
+{
+  "slug": "magenta-negative",
+  "title": "Magenta Negative",
+  "source": "https://fujixweekly.com/2023/08/21/magenta-negative-fujifilm-x-e4-x-trans-iv-film-simulation-recipe/",
+  "image": "magenta-negative.jpg",
+  "params": {
+    "filmSimulation": "Classic Negative",
+    "dynamicRange": "DR400",
+    "highlight": "-2",
+    "shadow": "-1",
+    "color": "0",
+    "noiseReduction": "-4",
+    "sharpness": "-2",
+    "clarity": "-4",
+    "grainEffect": "Strong, Large",
+    "colorChrome": "Strong",
+    "whiteBalance": "5100K, +4 Red & +2 Blue",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

@@ -1,52 +1,122 @@
-"""Dark theme stylesheet for FujiRecipe — Visual Overhaul v2.
+"""Dark theme stylesheet for FujiRecipe — Visual Overhaul v4.
 
-Colour palette shifted to cool blue-black.  QTabWidget rules removed
-(replaced by vertical SlotRail).  TitleBar + window-control rules added.
+Single source of truth: every hex code in the app routes through PALETTE.
+Other UI modules (main_window, recipe_browser, preset_panel) import PALETTE
+rather than hard-coding hex values inline.
 """
 
-ACCENT    = '#E8840A'
-BG        = '#0e0e14'   # cool blue-black (was #1a1a1a)
-PANEL     = '#14141c'   # (was #242424)
-PANEL_ALT = '#1c1c28'   # (was #2c2c2c)
-BORDER    = '#2a2a3a'   # (was #3a3a3a)
-TEXT      = '#e2e2f0'   # slight cool tint (was #e8e8e8)
-TEXT_DIM  = '#6a6a82'   # (was #9a9a9a)
-DANGER    = '#d94343'
-OK        = '#3ab873'
+from typing import Final
+
+
+# ---------------------------------------------------------------------------
+# Token palette
+# ---------------------------------------------------------------------------
+
+PALETTE: Final[dict[str, str]] = {
+    # Brand
+    'accent':         '#E8840A',
+    'accentHover':    '#ff9620',
+    'onAccent':       '#000000',
+
+    # Surfaces — deeper contrast ramp for layered glass feel
+    'bg':             '#0b0b10',   # absolute floor — window/rail backgrounds
+    'bgDeep':         '#070709',   # deepest shade — image placeholder bg
+    'panel':          '#191926',   # card surface — group boxes, panels
+    'panelAlt':       '#1f2030',   # control background — inputs, combos
+    'panelRaised':    '#232337',   # elevated elements — toasts, menus
+
+    # Borders / hairlines
+    'border':         '#26263e',
+    'borderSoft':     '#151520',
+
+    # Text
+    'text':           '#e2e2f0',
+    'textBright':     '#c4c4d8',
+    'textDim':        '#6a6a82',
+    'textMute':       '#5a5a72',
+
+    # Status
+    'danger':         '#d94343',
+    'dangerHover':    '#c0392b',
+    'ok':             '#3ab873',
+    'white':          '#ffffff',
+
+    # Slot rail states
+    'slotSel':        '#1e1e30',
+    'slotHover':      '#161626',
+    'slotSep':        '#1a1a28',
+
+    # Recipe list row states
+    'rowSel':         '#212138',
+    'rowHover':       '#1c1c2e',
+
+    # Section headers
+    'sectionHdr':     '#888894',
+    'sectionHdrBg':   '#16162a',
+
+    # Swatches / fallbacks
+    'swatchFallback': '#444450',
+    'simDefault':     '#666670',
+
+    # Value pills (recipe-browser detail)
+    'pillBg':         '#1e1e30',
+    'pillBorder':     '#2a2a42',
+    'pillText':       '#f0f0fa',
+}
+
+
+# ---------------------------------------------------------------------------
+# Back-compat module-level shortcuts
+# ---------------------------------------------------------------------------
+
+ACCENT    = PALETTE['accent']
+BG        = PALETTE['bg']
+PANEL     = PALETTE['panel']
+PANEL_ALT = PALETTE['panelAlt']
+BORDER    = PALETTE['border']
+TEXT      = PALETTE['text']
+TEXT_DIM  = PALETTE['textDim']
+DANGER    = PALETTE['danger']
+OK        = PALETTE['ok']
+
+P = PALETTE  # local shortcut for stylesheet f-string
+
+MONO_FONT = '"JetBrains Mono", "Cascadia Mono", "Consolas", "Menlo", monospace'
 
 STYLESHEET = f"""
 * {{
     font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 10pt;
-    color: {TEXT};
+    color: {P['text']};
+    font-weight: 500;
 }}
 
 QMainWindow {{
-    background-color: {BG};
-    border: 1px solid {BORDER};
+    background-color: {P['bg']};
+    border: 1px solid {P['border']};
 }}
 
 QDialog {{
-    background-color: {BG};
+    background-color: {P['bg']};
 }}
 
 /* ── Custom title bar ──────────────────────────────────────────────────── */
 
 QWidget#TitleBar {{
-    background-color: {PANEL};
-    border-bottom: 1px solid {BORDER};
+    background-color: {P['panel']};
+    border-bottom: 1px solid {P['border']};
 }}
 
 QLabel#titleLabel {{
     font-size: 11pt;
     font-weight: 700;
     letter-spacing: 0.5px;
-    color: {TEXT};
+    color: {P['text']};
     background: transparent;
 }}
 
 QLabel#titleDot {{
-    color: {ACCENT};
+    color: {P['accent']};
     font-size: 9pt;
     background: transparent;
 }}
@@ -54,9 +124,10 @@ QLabel#titleDot {{
 QPushButton#winCtrlBtn {{
     background: transparent;
     border: none;
-    border-radius: 4px;
-    color: {TEXT_DIM};
+    border-radius: 5px;
+    color: {P['textDim']};
     font-size: 12pt;
+    font-weight: 500;
     padding: 0;
     min-width: 32px;
     max-width: 32px;
@@ -66,27 +137,27 @@ QPushButton#winCtrlBtn {{
 
 QPushButton#winCtrlBtn:hover {{
     background: rgba(255, 255, 255, 0.07);
-    color: {TEXT};
+    color: {P['text']};
 }}
 
 QPushButton#winCtrlBtn[role="close"]:hover {{
-    background: #c0392b;
-    color: #ffffff;
+    background: {P['dangerHover']};
+    color: {P['white']};
 }}
 
 /* ── Top toolbar ───────────────────────────────────────────────────────── */
 
 QWidget#TopBar {{
-    background-color: {PANEL};
-    border-bottom: 1px solid {BORDER};
+    background-color: {P['panel']};
+    border-bottom: 1px solid {P['border']};
 }}
 
 /* ── Slot rail ─────────────────────────────────────────────────────────── */
 
 QListWidget#SlotRail {{
-    background-color: {BG};
+    background-color: {P['bg']};
     border: none;
-    border-right: 1px solid {BORDER};
+    border-right: 1px solid {P['border']};
     outline: none;
     padding: 6px 0;
 }}
@@ -108,132 +179,159 @@ QListWidget#SlotRail::item:hover {{
 /* ── Labels ────────────────────────────────────────────────────────────── */
 
 QLabel {{
-    color: {TEXT};
+    color: {P['text']};
     background: transparent;
+    font-weight: 500;
 }}
 
 QLabel[role="heading"] {{
     font-size: 14pt;
     font-weight: 600;
-    color: {ACCENT};
+    color: {P['accent']};
 }}
 
-/* Slot tag — left accent stripe, updated dynamically per sim colour */
 QLabel[role="slotTag"] {{
     font-size: 15pt;
     font-weight: 700;
-    color: {ACCENT};
+    color: {P['accent']};
     padding: 2px 8px 2px 14px;
     border: none;
-    border-left: 3px solid {ACCENT};
+    border-left: 3px solid {P['accent']};
     background: transparent;
 }}
 
 QLabel[role="dim"] {{
-    color: {TEXT_DIM};
+    color: {P['textDim']};
+    font-weight: 500;
 }}
 
 QLabel[role="paramLabel"] {{
-    color: {TEXT_DIM};
+    color: {P['textDim']};
     font-size: 9pt;
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }}
 
 QLabel[role="paramValue"] {{
-    color: {TEXT};
+    color: {P['text']};
     font-weight: 600;
 }}
 
+QLabel[role="valuePill"] {{
+    background-color: {P['pillBg']};
+    color: {P['pillText']};
+    font-family: {MONO_FONT};
+    font-weight: 600;
+    font-size: 9pt;
+    padding: 3px 10px;
+    border: 1px solid {P['pillBorder']};
+    border-radius: 10px;
+}}
+
 QLabel#RecipeImage {{
-    background-color: #0a0a10;
-    border: 1px solid {BORDER};
-    border-radius: 3px;
-    color: {TEXT_DIM};
+    background-color: {P['bgDeep']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+    color: {P['textDim']};
 }}
 
 QLabel#RecipeTitle {{
     font-size: 13pt;
     font-weight: 700;
-    color: {TEXT};
+    color: {P['text']};
+    letter-spacing: 0.2px;
 }}
 
 /* ── Inputs ────────────────────────────────────────────────────────────── */
 
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
-    background-color: {PANEL_ALT};
-    border: 1px solid {BORDER};
-    border-radius: 4px;
-    padding: 4px 6px;
-    min-height: 18px;
-    selection-background-color: {ACCENT};
-    selection-color: #000;
+    background-color: {P['panelAlt']};
+    border: 1px solid {P['border']};
+    border-radius: 6px;
+    padding: 4px 7px;
+    min-height: 20px;
+    font-weight: 600;
+    selection-background-color: {P['accent']};
+    selection-color: {P['onAccent']};
 }}
 
+/* Accent halo on focus — border + subtle background tint */
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
-    border: 1px solid {ACCENT};
+    border: 2px solid {P['accent']};
+    padding: 3px 6px;
+    background-color: rgba(232, 132, 10, 0.06);
 }}
 
 QComboBox::drop-down {{
     border: none;
-    width: 18px;
+    width: 20px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
 }}
 
 QComboBox QAbstractItemView {{
-    background-color: {PANEL_ALT};
-    border: 1px solid {BORDER};
-    selection-background-color: {ACCENT};
-    selection-color: #000;
+    background-color: {P['panelRaised']};
+    border: 1px solid {P['border']};
+    border-radius: 6px;
+    selection-background-color: {P['accent']};
+    selection-color: {P['onAccent']};
+    padding: 2px;
 }}
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 
 QPushButton {{
-    background-color: {PANEL_ALT};
-    border: 1px solid {BORDER};
-    border-radius: 4px;
+    background-color: {P['panelAlt']};
+    border: 1px solid {P['border']};
+    border-radius: 6px;
     padding: 6px 14px;
-    color: {TEXT};
+    color: {P['text']};
+    font-weight: 600;
 }}
 
 QPushButton:hover {{
-    border: 1px solid {ACCENT};
-    color: {ACCENT};
+    border: 1px solid {P['accent']};
+    color: {P['accent']};
+    background-color: rgba(232, 132, 10, 0.06);
 }}
 
 QPushButton:pressed {{
-    background-color: {BG};
+    background-color: {P['bg']};
 }}
 
 QPushButton[role="primary"] {{
-    background-color: {ACCENT};
-    color: #000;
-    font-weight: 600;
-    border: 1px solid {ACCENT};
-    border-radius: 4px;
+    background-color: {P['accent']};
+    color: {P['onAccent']};
+    font-weight: 700;
+    border: 1px solid {P['accent']};
+    border-radius: 6px;
 }}
 
 QPushButton[role="primary"]:hover {{
-    background-color: #ff9620;
+    background-color: {P['accentHover']};
+    color: {P['onAccent']};
 }}
 
 QPushButton:disabled {{
-    color: {TEXT_DIM};
-    border-color: {BORDER};
-    background-color: {BG};
+    color: {P['textMute']};
+    border-color: {P['borderSoft']};
+    background-color: {P['bg']};
 }}
 
 /* ── Status bar ────────────────────────────────────────────────────────── */
 
 QStatusBar {{
-    background-color: {PANEL};
-    color: {TEXT_DIM};
-    border-top: 1px solid {BORDER};
+    background-color: {P['panel']};
+    color: {P['textDim']};
+    border-top: 1px solid {P['border']};
     font-size: 9pt;
+    font-weight: 500;
 }}
 
 /* ── Dividers ──────────────────────────────────────────────────────────── */
 
 QFrame[role="divider"] {{
-    background: {BORDER};
+    background: {P['border']};
     max-height: 1px;
     min-height: 1px;
     border: none;
@@ -242,58 +340,63 @@ QFrame[role="divider"] {{
 /* ── Connection dot ────────────────────────────────────────────────────── */
 
 QLabel#connDot[state="off"] {{
-    color: {DANGER};
+    color: {P['danger']};
+}}
+
+QLabel#connDot[state="connecting"] {{
+    color: {P['accent']};
 }}
 
 QLabel#connDot[state="on"] {{
-    color: {OK};
+    color: {P['ok']};
 }}
 
-/* ── Group boxes ───────────────────────────────────────────────────────── */
+/* ── Group boxes — card surface with subtle glass overlay ──────────────── */
 
 QGroupBox {{
-    border: 1px solid {BORDER};
-    border-radius: 6px;
+    border: 1px solid {P['border']};
+    border-radius: 10px;
     margin-top: 18px;
-    padding-top: 12px;
-    padding-left: 4px;
-    padding-right: 4px;
-    padding-bottom: 6px;
-    background-color: {PANEL};
+    padding-top: 14px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-bottom: 10px;
+    background-color: {P['panel']};
 }}
 
 QGroupBox::title {{
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 10px;
-    padding: 0 6px;
-    color: {ACCENT};
+    left: 12px;
+    padding: 0 8px;
+    color: {P['accent']};
     font-weight: 700;
     font-size: 8pt;
-    text-transform: uppercase;
     letter-spacing: 1px;
+    text-transform: uppercase;
+    background: transparent;
 }}
 
 /* ── Scroll areas ──────────────────────────────────────────────────────── */
 
 QScrollArea, QScrollArea > QWidget > QWidget {{
-    background-color: {PANEL};
+    background-color: {P['bg']};
 }}
 
 QScrollBar:vertical {{
-    background: {BG};
-    width: 6px;
+    background: {P['bg']};
+    width: 5px;
     margin: 0;
 }}
 
 QScrollBar::handle:vertical {{
-    background: {BORDER};
-    border-radius: 3px;
+    background: {P['border']};
+    border-radius: 2px;
     min-height: 24px;
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background: {ACCENT};
+    background: {P['accent']};
 }}
 
 QScrollBar::add-line, QScrollBar::sub-line {{
@@ -303,67 +406,73 @@ QScrollBar::add-line, QScrollBar::sub-line {{
 /* ── Recipe list ───────────────────────────────────────────────────────── */
 
 QListWidget#RecipeList {{
-    background-color: {BG};
+    background-color: {P['bg']};
     border: none;
-    border-right: 1px solid {BORDER};
+    border-right: 1px solid {P['border']};
     outline: none;
 }}
 
 QListWidget#RecipeList::item {{
     padding: 6px 8px;
-    border-bottom: 1px solid #18181f;
-    color: {TEXT};
+    border-bottom: 1px solid {P['borderSoft']};
+    color: {P['text']};
+    border-radius: 0px;
 }}
 
 QListWidget#RecipeList::item:selected {{
-    background-color: #1e1e2c;
-    color: {ACCENT};
-    border-left: 3px solid {ACCENT};
+    background-color: {P['rowSel']};
+    color: {P['accent']};
+    border-left: 3px solid {P['accent']};
     padding-left: 5px;
 }}
 
 QListWidget#RecipeList::item:hover:!selected {{
-    background-color: #18182a;
+    background-color: {P['rowHover']};
 }}
 
 /* ── File / tool buttons ───────────────────────────────────────────────── */
 
 QToolButton {{
-    background-color: {PANEL_ALT};
-    border: 1px solid {BORDER};
-    border-radius: 4px;
+    background-color: {P['panelAlt']};
+    border: 1px solid {P['border']};
+    border-radius: 6px;
     padding: 6px 14px;
-    color: {TEXT};
+    color: {P['text']};
+    font-weight: 600;
 }}
 
 QToolButton:hover {{
-    border: 1px solid {ACCENT};
-    color: {ACCENT};
+    border: 1px solid {P['accent']};
+    color: {P['accent']};
+    background-color: rgba(232, 132, 10, 0.06);
 }}
 
 QToolButton:pressed {{
-    background-color: {BG};
+    background-color: {P['bg']};
 }}
 
 QMenu {{
-    background-color: {PANEL_ALT};
-    border: 1px solid {BORDER};
-    padding: 4px 0;
+    background-color: {P['panelRaised']};
+    border: 1px solid {P['border']};
+    border-radius: 8px;
+    padding: 4px 4px;
 }}
 
 QMenu::item {{
     padding: 6px 20px 6px 12px;
-    color: {TEXT};
+    color: {P['text']};
+    font-weight: 500;
+    border-radius: 5px;
 }}
 
 QMenu::item:selected {{
-    background-color: {ACCENT};
-    color: #000;
+    background-color: rgba(232, 132, 10, 0.15);
+    color: {P['accent']};
 }}
 
 QMenu::separator {{
     height: 1px;
-    background: {BORDER};
+    background: {P['border']};
     margin: 4px 0;
 }}
 """

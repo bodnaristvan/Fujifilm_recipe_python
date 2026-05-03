@@ -1,0 +1,22 @@
+{
+  "slug": "fujicolor-c200-v2",
+  "title": "Fujicolor C200 v2",
+  "source": "https://fujixweekly.com/2026/01/19/fujicolor-c200-v2-fujifilm-x100v-x-trans-iv-film-simulation-recipe/",
+  "image": "fujicolor-c200-v2.jpg",
+  "params": {
+    "filmSimulation": "Classic Negative",
+    "dynamicRange": "DR100",
+    "grainEffect": "Weak, Small",
+    "colorChrome": "Strong",
+    "colorChromeFxBlue": "Strong",
+    "whiteBalance": "Shade, -2 Red & +1 Blue",
+    "highlight": "-2",
+    "shadow": "-2",
+    "color": "+4",
+    "sharpness": "-1",
+    "noiseReduction": "-4",
+    "clarity": "-2",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}

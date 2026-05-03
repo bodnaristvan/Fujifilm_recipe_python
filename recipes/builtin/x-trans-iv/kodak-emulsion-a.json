@@ -1,0 +1,22 @@
+{
+  "slug": "kodak-emulsion-a",
+  "title": "Kodak Emulsion",
+  "source": "https://fujixweekly.com/2026/05/02/kodak-emulsion-a-fujifilm-recipe-for-x-trans-iv-cameras/",
+  "image": "kodak-emulsion-a.jpg",
+  "params": {
+    "filmSimulation": "Classic Chrome",
+    "grainEffect": "Strong, Large",
+    "colorChrome": "Strong",
+    "colorChromeFxBlue": "Off",
+    "whiteBalance": "Shade, -2 Red & +2 Blue",
+    "dynamicRange": "DR400",
+    "highlight": "-2",
+    "shadow": "-2",
+    "color": "+3",
+    "sharpness": "-2",
+    "noiseReduction": "-4",
+    "clarity": "-3",
+    "iso": "Auto, up to ISO 6400",
+    "exposureCompensation": "0 to +2/3 (typically)"
+  }
+}
