@@ -45,6 +45,11 @@ class PTPResp:
     InvalidStorageID       = 0x2008
     InvalidObjectHandle    = 0x2009
     DevicePropNotSupported = 0x200A
+    AccessDenied           = 0x200F
+    DeviceBusy             = 0x2019
+    InvalidDevicePropFormat = 0x201B
+    InvalidDevicePropValue = 0x201C
+    InvalidParameter       = 0x201D
     SessionAlreadyOpen     = 0x201E
 
 
